@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Style Transfer CycleGAN</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">CG</div>
+        <div>
+          <div class="title">Style Transfer “Комбайн”</div>
+          <div class="subtitle">CycleGAN • PyWebview • CPU/GPU</div>
+        </div>
+      </div>
+
+      <div class="status">
+        <div class="pill" id="pill-status">Idle</div>
+        <div class="pill secondary" id="pill-lr">LR: —</div>
+      </div>
+    </header>
+
+    <main class="content">
+      <nav class="tabs">
+        <button class="tab active" data-tab="train">Обучение</button>
+        <button class="tab" data-tab="resume">Продолжить</button>
+        <button class="tab" data-tab="infer">Инференс</button>
+        <button class="tab" data-tab="about">О программе</button>
+      </nav>
+
+      <!-- TRAIN -->
+      <section class="panel active" id="tab-train">
+        <div class="grid">
+          <div class="card">
+            <h2>Проект</h2>
+
+            <div class="row">
+              <label>Project base folder (куда создать папку проекта)</label>
+              <div class="inputgroup">
+                <input id="train-proj-base" placeholder="/path/to/projects_root" />
+                <button class="btn icon" id="btn-pick-train-proj-base" title="Выбрать папку">📁</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Project name (имя папки)</label>
+              <input id="train-proj-name" placeholder="my_experiment_01" />
+            </div>
+
+            <div class="row">
+              <label>Сохранять статистику</label>
+              <div class="checks">
+                <label class="check"><input type="checkbox" id="stat-losses" checked /> losses.csv (по эпохам)</label>
+                <label class="check"><input type="checkbox" id="stat-lr" checked /> lr.csv</label>
+                <label class="check"><input type="checkbox" id="stat-logs" /> logs.txt</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Датасеты</h2>
+
+            <div class="row">
+              <label>Domain A (предметы)</label>
+              <div class="inputgroup">
+                <input id="train-a" placeholder="/path/to/domainA" />
+                <button class="btn icon" id="btn-pick-train-a" title="Выбрать папку">📁</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Domain B (стили)</label>
+              <div class="inputgroup">
+                <input id="train-b" placeholder="/path/to/domainB" />
+                <button class="btn icon" id="btn-pick-train-b" title="Выбрать папку">📁</button>
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Image size</label>
+                <input id="train-imgsize" type="number" min="64" max="1024" step="32" />
+              </div>
+              <div class="row">
+                <label>Batch size</label>
+                <input id="train-batch" type="number" min="1" max="16" step="1" />
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Max images A (optional)</label>
+                <input id="train-maxa" type="number" min="1" step="1" placeholder="empty = all" />
+              </div>
+              <div class="row">
+                <label>Max images B (optional)</label>
+                <input id="train-maxb" type="number" min="1" step="1" placeholder="empty = all" />
+              </div>
+            </div>
+
+            <div class="row">
+              <label><input id="train-recursive" type="checkbox" /> Рекурсивно искать изображения</label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Модель</h2>
+            <div class="row2">
+              <div class="row">
+                <label>Residual blocks</label>
+                <input id="train-resblocks" type="number" min="1" max="18" step="1" />
+              </div>
+              <div class="row">
+                <label>Device</label>
+                <select id="train-device">
+                  <option value="cpu">cpu</option>
+                  <option value="cuda">cuda</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <label><input id="train-dropout" type="checkbox" /> Use dropout</label>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Dropout p</label>
+                <input id="train-dropoutp" type="number" min="0" max="0.9" step="0.05" />
+              </div>
+              <div class="row">
+                <label>Gradient clip (0 = off)</label>
+                <input id="train-clip" type="number" min="0" step="0.1" />
+              </div>
+            </div>
+
+            <div class="row">
+              <label><input id="train-save-b2a" type="checkbox" checked /> Save B2A models (экономия места: выключи)</label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Обучение</h2>
+
+            <div class="row2">
+              <div class="row">
+                <label>Epochs</label>
+                <input id="train-epochs" type="number" min="1" step="1" />
+              </div>
+              <div class="row">
+                <label>LR</label>
+                <input id="train-lr" type="number" min="0" step="0.00005" />
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>λ cycle</label>
+                <input id="train-lcycle" type="number" min="0" step="0.5" />
+              </div>
+              <div class="row">
+                <label>λ identity</label>
+                <input id="train-lid" type="number" min="0" step="0.5" />
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>LR decay start</label>
+                <input id="train-decaystart" type="number" min="0" step="1" />
+              </div>
+              <div class="row">
+                <label>LR decay end</label>
+                <input id="train-decayend" type="number" min="1" step="1" />
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Final LR ratio</label>
+              <input id="train-finalratio" type="number" min="0" max="1" step="0.01" />
+            </div>
+
+            <div class="row">
+              <label><input id="train-replay" type="checkbox" /> Replay buffer</label>
+            </div>
+            <div class="row">
+              <label>Replay buffer size</label>
+              <input id="train-replaysize" type="number" min="1" step="1" />
+            </div>
+
+            <div class="row">
+              <label><input id="train-early" type="checkbox" /> Early stopping</label>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Patience</label>
+                <input id="train-patience" type="number" min="1" step="1" />
+              </div>
+              <div class="row">
+                <label>Min delta</label>
+                <input id="train-mindelta" type="number" min="0" step="0.0001" />
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Metric</label>
+              <select id="train-metric">
+                <option value="G_total">G_total</option>
+                <option value="cycle">cycle</option>
+                <option value="identity">identity</option>
+                <option value="adv">adv</option>
+              </select>
+            </div>
+
+            <hr style="border:0;border-top:1px solid var(--border); margin:12px 0;">
+
+            <div class="row">
+              <label><input id="train-save-ckpt" type="checkbox" checked /> Save checkpoints</label>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Checkpoint interval (epochs)</label>
+                <input id="train-ckpt-interval" type="number" min="1" step="1" />
+              </div>
+              <div class="row">
+                <label><input id="train-ckpt-latest" type="checkbox" /> Keep only latest checkpoint</label>
+              </div>
+            </div>
+
+            <hr style="border:0;border-top:1px solid var(--border); margin:12px 0;">
+
+            <div class="row">
+              <label><input id="train-model-interval-enabled" type="checkbox" checked /> Save models by interval</label>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Model save interval (epochs)</label>
+                <input id="train-model-interval" type="number" min="1" step="1" />
+              </div>
+              <div class="row">
+                <label><input id="train-model-keep-last-enabled" type="checkbox" /> Keep last models</label>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Keep last count</label>
+              <input id="train-model-keep-last-count" type="number" min="1" step="1" />
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="btn-train-start">Start training</button>
+              <button class="btn danger" id="btn-train-stop">Stop</button>
+            </div>
+
+            <div class="small muted" id="train-run-dir"></div>
+          </div>
+
+          <div class="card wide">
+            <h2>Логи</h2>
+            <pre class="console" id="train-console"></pre>
+            <div class="progress">
+              <div class="bar" id="train-progress"></div>
+            </div>
+            <div class="small muted" id="train-stats"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RESUME -->
+      <section class="panel" id="tab-resume">
+        <div class="grid">
+          <div class="card">
+            <h2>Продолжение обучения</h2>
+
+            <div class="row">
+              <label>Checkpoint (.pth) из <code>project/checkpoints/</code></label>
+              <div class="inputgroup">
+                <input id="resume-ckpt" placeholder="/path/to/project/checkpoints/epoch_0005.pth" />
+                <button class="btn icon" id="btn-pick-resume-ckpt" title="Выбрать чекпоинт">📄</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <button class="btn" id="btn-resume-info">Показать информацию</button>
+              <div class="small muted" id="resume-info"></div>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="btn-resume-start">Resume training</button>
+              <button class="btn danger" id="btn-resume-stop">Stop</button>
+            </div>
+
+            <div class="small muted" id="resume-run-dir"></div>
+            <div class="small muted">
+              Настройки из чекпоинта менять нельзя: используются исходные датасеты и параметры.
+            </div>
+          </div>
+
+          <div class="card wide">
+            <h2>Логи (общие)</h2>
+            <pre class="console" id="resume-console"></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- INFER -->
+      <section class="panel" id="tab-infer">
+        <div class="grid">
+          <div class="card">
+            <h2>Модель</h2>
+            <div class="row">
+              <label>Generator .pth</label>
+              <div class="inputgroup">
+                <input id="infer-model" placeholder="/path/to/G_A2B_epoch_....pth" />
+                <button class="btn icon" id="btn-pick-infer-model" title="Выбрать файл модели">📄</button>
+              </div>
+            </div>
+            <div class="row2">
+              <div class="row">
+                <label>Residual blocks</label>
+                <input id="infer-resblocks" type="number" min="1" max="18" step="1" />
+              </div>
+              <div class="row">
+                <label>Device</label>
+                <select id="infer-device">
+                  <option value="cpu">cpu</option>
+                  <option value="cuda">cuda</option>
+                </select>
+              </div>
+            </div>
+            <div class="row2">
+              <div class="row">
+                <label>Image size</label>
+                <input id="infer-imgsize" type="number" min="64" max="1024" step="32" />
+              </div>
+              <div class="row">
+                <label><input id="infer-dropout" type="checkbox" /> Dropout (обычно нет)</label>
+              </div>
+            </div>
+            <div class="row">
+              <label>Dropout p</label>
+              <input id="infer-dropoutp" type="number" min="0" max="0.9" step="0.05" />
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Вход / Выход</h2>
+
+            <div class="row">
+              <label>Input (file or folder)</label>
+              <div class="inputgroup">
+                <input id="infer-input" placeholder="/path/to/image_or_folder" />
+                <button class="btn icon" id="btn-pick-infer-input-file" title="Выбрать файл">📄</button>
+                <button class="btn icon" id="btn-pick-infer-input-folder" title="Выбрать папку">📁</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Output folder (обязательно)</label>
+              <div class="inputgroup">
+                <input id="infer-output" placeholder="/path/to/output_folder" />
+                <button class="btn icon" id="btn-pick-infer-output" title="Выбрать папку вывода">📁</button>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="btn-infer-run">Run inference</button>
+            </div>
+
+            <div class="small muted" id="infer-result"></div>
+          </div>
+
+          <div class="card wide">
+            <h2>Превью (первые результаты)</h2>
+            <div class="gallery" id="infer-gallery"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABOUT -->
+      <section class="panel" id="tab-about">
+        <div class="card">
+          <h2>О программе</h2>
+          <p class="muted">
+            CycleGAN комбайн: обучение и применение. Продолжение обучения возможно через чекпоинт из папки проекта.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span class="muted small">Рекомендуется хранить чекпоинты в <code>project/checkpoints/</code></span>
+    </footer>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
