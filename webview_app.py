@@ -12,7 +12,7 @@ from PIL import Image
 
 from styler.config import InferenceConfig, TrainConfig
 from styler.device import get_cuda_status
-from styler.inference import run_inference_images
+from styler.inference import infer_arch_from_state_dict, load_generator_payload, run_inference_images
 from styler.trainer import CycleGANTrainer
 from styler.utils import ensure_dir, list_images
 
@@ -237,6 +237,42 @@ class Api:
         except Exception as e:
             return {"ok": False, "error": str(e)}
 
+    def get_model_info(self, model_path: str) -> Dict[str, Any]:
+        """
+        Read meta from a generator model file saved into project/models/*.pth.
+
+        Returns (ok, has_meta, residual_blocks, use_dropout, dropout_p, image_size, message?).
+        """
+        try:
+            p = Path(model_path).expanduser().resolve()
+            if not p.exists():
+                return {"ok": False, "error": "Model file not found"}
+
+            meta, sd = load_generator_payload(p)
+
+            if not meta:
+                inf = infer_arch_from_state_dict(sd)
+                return {
+                    "ok": True,
+                    "has_meta": False,
+                    "message": "Legacy model file (no meta). Parameters inferred from state_dict.",
+                    "residual_blocks": inf.get("residual_blocks"),
+                    "use_dropout": inf.get("use_dropout"),
+                    "dropout_p": None,
+                    "image_size": None,
+                }
+
+            return {
+                "ok": True,
+                "has_meta": True,
+                "residual_blocks": meta.get("residual_blocks"),
+                "use_dropout": meta.get("use_dropout"),
+                "dropout_p": meta.get("dropout_p"),
+                "image_size": meta.get("image_size"),
+            }
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
     def resume_training(self, checkpoint_path: str) -> Dict[str, Any]:
         with self._lock:
             if self._train_thread and self._train_thread.is_alive():
@@ -365,10 +401,12 @@ def run_web() -> None:
     gui = None
     try:
         import qtpy  # noqa: F401
+
         gui = "qt"
     except Exception:
         try:
             import gi  # noqa: F401
+
             gui = "gtk"
         except Exception:
             gui = None

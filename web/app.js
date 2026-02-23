@@ -142,9 +142,6 @@ async function loadDefaults(){
   if(infer.ok){
     const c = infer.config;
     $("infer-imgsize").value = c.image_size;
-    $("infer-resblocks").value = c.residual_blocks;
-    $("infer-dropout").checked = c.use_dropout;
-    $("infer-dropoutp").value = c.dropout_p;
     $("infer-device").value = c.device;
     $("infer-output").value = c.output_dir || "";
   }
@@ -221,9 +218,6 @@ function buildInferConfig(){
     input_path: $("infer-input").value.trim(),
     output_dir: $("infer-output").value.trim(),
     image_size: toInt($("infer-imgsize").value) ?? 256,
-    residual_blocks: toInt($("infer-resblocks").value) ?? 9,
-    use_dropout: $("infer-dropout").checked,
-    dropout_p: toFloat($("infer-dropoutp").value) ?? 0.0,
     device: $("infer-device").value,
     direction: "A2B"
   };
@@ -325,9 +319,37 @@ async function stopTraining(){
   }
 }
 
+async function refreshInferModelInfo(){
+  const path = ($("infer-model").value || "").trim();
+  const infoEl = $("infer-model-info");
+  if(!infoEl) return;
+
+  if(!path){
+    infoEl.textContent = "";
+    return;
+  }
+
+  try{
+    const res = await window.pywebview.api.get_model_info(path);
+    if(!res.ok){
+      infoEl.textContent = "Не удалось прочитать модель: " + (res.error || "");
+      return;
+    }
+
+    const src = res.has_meta ? "meta" : "state_dict";
+    const rb = (res.residual_blocks !== undefined && res.residual_blocks !== null) ? res.residual_blocks : "?";
+    const dr = (res.use_dropout === true) ? `on (p=${res.dropout_p ?? "?"})` : "off";
+    infoEl.textContent = `Параметры модели (${src}): residual_blocks=${rb}, dropout=${dr}.`;
+  }catch(e){
+    infoEl.textContent = "Не удалось прочитать модель: " + String(e);
+  }
+}
+
 async function runInference(){
   const ok = await enforceCudaSelection($("infer-device"));
   if(!ok) return;
+
+  await refreshInferModelInfo();
 
   const cfg = buildInferConfig();
   if(!cfg.model_path || !cfg.input_path){
@@ -427,7 +449,11 @@ window.addEventListener("pywebviewready", async () => {
 
   $("btn-pick-infer-model").addEventListener("click", async () => {
     await pickFileInto($("infer-model"), "Select generator model (.pth)", "pth");
+    await refreshInferModelInfo();
   });
+
+  $("infer-model").addEventListener("change", refreshInferModelInfo);
+  $("infer-model").addEventListener("blur", refreshInferModelInfo);
 
   $("btn-pick-infer-input-file").addEventListener("click", async () => {
     await pickFileInto($("infer-input"), "Select input image file", "image");
