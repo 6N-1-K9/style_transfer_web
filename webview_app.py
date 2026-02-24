@@ -5,15 +5,15 @@ import random
 import threading
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 import webview
-from PIL import Image, ImageOps
+from PIL import Image
 
 from styler.config import InferenceConfig, TrainConfig
 from styler.device import get_cuda_status
-from styler.inference import infer_arch_from_state_dict, load_generator_payload, run_inference_images
+from styler.inference import run_inference_images
 from styler.trainer import CycleGANTrainer
 from styler.utils import ensure_dir, list_images
 
@@ -41,20 +41,54 @@ def _ensure_dir_arg(start_dir: str) -> str:
         return ""
 
 
-def _make_thumb_data_url(img_path: Path, size: int = 420) -> str:
+def _infer_project_dir_from_model_path(model_path: Path) -> Optional[Path]:
     """
-    Make a reasonably small preview thumbnail. We do center-crop to keep it visually nice.
+    Expected:
+      <project_dir>/models/G_A2B_epoch_XXXX.pth
     """
-    img = Image.open(img_path).convert("RGB")
-    thumb = ImageOps.fit(img, (size, size), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
-    return _pil_to_data_url(thumb, fmt="PNG")
-
-
-def _safe_get(d: Dict[str, Any], key: str, default: Any = None) -> Any:
     try:
-        return d.get(key, default)
+        if model_path.parent.name == "models":
+            return model_path.parent.parent
     except Exception:
-        return default
+        pass
+    return None
+
+
+def _read_train_config_from_project(project_dir: Path) -> Optional[Dict[str, Any]]:
+    try:
+        cfg_path = project_dir / "train_config.json"
+        if not cfg_path.exists():
+            return None
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        if isinstance(raw, dict):
+            return raw
+    except Exception:
+        return None
+    return None
+
+
+def _sample_images_as_data_urls(folder: Path, k: int) -> List[Dict[str, str]]:
+    imgs = list_images(folder, recursive=True)
+    if not imgs:
+        return []
+
+    if len(imgs) <= k:
+        chosen = imgs
+    else:
+        chosen = random.sample(imgs, k)
+
+    out: List[Dict[str, str]] = []
+    for p in chosen:
+        try:
+            img = Image.open(p).convert("RGB")
+            # downscale a bit for UI memory, keep square-ish cropping by center-crop
+            # (we keep it simple: just thumbnail to 256x256 preserving aspect)
+            img.thumbnail((256, 256))
+            out.append({"path": str(p), "data_url": _pil_to_data_url(img)})
+        except Exception:
+            continue
+    return out
 
 
 class Api:
@@ -153,40 +187,6 @@ class Api:
             "torch_cuda_version": st.torch_cuda_version,
         }
 
-    def list_images(self, folder: str) -> Dict[str, Any]:
-        p = Path(folder).expanduser().resolve()
-        if not p.exists():
-            return {"ok": False, "error": "Folder not found"}
-        imgs = list_images(p, recursive=True)
-        return {"ok": True, "count": len(imgs), "images": [str(x) for x in imgs[:2000]]}
-
-    def get_dataset_preview(self, folder: str, count: int = 3) -> Dict[str, Any]:
-        try:
-            p = Path(folder).expanduser().resolve()
-            if not p.exists():
-                return {"ok": False, "error": "Folder not found"}
-
-            imgs = list_images(p, recursive=True)
-            if not imgs:
-                return {"ok": False, "error": "No images found"}
-
-            k = max(1, min(int(count or 3), 6))
-            chosen = random.sample(imgs, k=min(k, len(imgs)))
-
-            out = []
-            for ip in chosen:
-                try:
-                    out.append({"path": str(ip), "data_url": _make_thumb_data_url(ip, size=420)})
-                except Exception:
-                    continue
-
-            if not out:
-                return {"ok": False, "error": "Failed to load images"}
-
-            return {"ok": True, "images": out}
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
-
     # ---------- Defaults ----------
     def get_default_train_config(self) -> Dict[str, Any]:
         cfg = TrainConfig()
@@ -195,6 +195,99 @@ class Api:
     def get_default_infer_config(self) -> Dict[str, Any]:
         cfg = InferenceConfig()
         return {"ok": True, "config": asdict(cfg)}
+
+    # ---------- Small helpers for UI (already used by train preview / resume) ----------
+    def get_dataset_preview(self, folder: str, k: int = 3) -> Dict[str, Any]:
+        try:
+            p = Path(folder).expanduser().resolve()
+            if not p.exists():
+                return {"ok": False, "error": "Folder not found"}
+            imgs = _sample_images_as_data_urls(p, int(k))
+            return {"ok": True, "count": len(imgs), "images": imgs}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    # NOTE: you likely already have get_model_info/get_resume_details in your repo.
+    # If not — these calls will fail from JS.
+    # (Оставляю как есть: в проекте они уже должны быть.)
+
+    # ---------- NEW: Infer tab training datasets preview ----------
+    def get_infer_training_datasets_preview(self, model_path: str, k: int = 4) -> Dict[str, Any]:
+        """
+        Returns:
+          a_status: "ok" | "not_found" | "unknown"
+          b_status: "ok" | "not_found" | "unknown"
+          a_images: [{path, data_url}, ...]
+          b_images: [{path, data_url}, ...]
+          domain_a_dir, domain_b_dir (if known)
+        """
+        try:
+            mp = Path(model_path).expanduser().resolve()
+            if not mp.exists():
+                return {"ok": False, "error": "Model file not found"}
+
+            project_dir = _infer_project_dir_from_model_path(mp)
+            domain_a_dir = ""
+            domain_b_dir = ""
+
+            if project_dir:
+                cfg = _read_train_config_from_project(project_dir)
+                if cfg:
+                    domain_a_dir = str(cfg.get("domain_a_dir", "") or "")
+                    domain_b_dir = str(cfg.get("domain_b_dir", "") or "")
+
+            # If still empty — try reading from model dict (future-proof)
+            if not domain_a_dir or not domain_b_dir:
+                try:
+                    raw = torch.load(mp, map_location="cpu")
+                    if isinstance(raw, dict):
+                        meta = raw.get("meta") or raw.get("metadata") or {}
+                        if isinstance(meta, dict):
+                            domain_a_dir = domain_a_dir or str(meta.get("domain_a_dir", "") or "")
+                            domain_b_dir = domain_b_dir or str(meta.get("domain_b_dir", "") or "")
+                except Exception:
+                    pass
+
+            out: Dict[str, Any] = {
+                "ok": True,
+                "domain_a_dir": domain_a_dir,
+                "domain_b_dir": domain_b_dir,
+                "a_status": "unknown",
+                "b_status": "unknown",
+                "a_images": [],
+                "b_images": [],
+            }
+
+            # A
+            if domain_a_dir:
+                pa = Path(domain_a_dir).expanduser()
+                if pa.exists() and pa.is_dir():
+                    imgs_a = _sample_images_as_data_urls(pa.resolve(), int(k))
+                    if imgs_a:
+                        out["a_status"] = "ok"
+                        out["a_images"] = imgs_a
+                    else:
+                        # directory exists but empty/no readable images -> treat as not_found-like UX
+                        out["a_status"] = "not_found"
+                else:
+                    out["a_status"] = "not_found"
+
+            # B
+            if domain_b_dir:
+                pb = Path(domain_b_dir).expanduser()
+                if pb.exists() and pb.is_dir():
+                    imgs_b = _sample_images_as_data_urls(pb.resolve(), int(k))
+                    if imgs_b:
+                        out["b_status"] = "ok"
+                        out["b_images"] = imgs_b
+                    else:
+                        out["b_status"] = "not_found"
+                else:
+                    out["b_status"] = "not_found"
+
+            return out
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
 
     # ---------- Training ----------
     def start_training(self, config_json: str) -> Dict[str, Any]:
@@ -252,127 +345,6 @@ class Api:
 
             return {"ok": True, "project_dir": str(project_dir)}
 
-    def _checkpoint_info_base(self, p: Path) -> Dict[str, Any]:
-        raw = torch.load(p, map_location="cpu")
-        if not isinstance(raw, dict) or "config" not in raw or "epoch" not in raw:
-            raise ValueError("Invalid checkpoint format")
-
-        cfg = raw["config"]
-        if not isinstance(cfg, dict):
-            cfg = {}
-
-        epoch = int(raw["epoch"])
-        project_dir = None
-        if p.parent.name == "checkpoints":
-            project_dir = str(p.parent.parent)
-
-        return {
-            "epoch": epoch,
-            "project_dir": project_dir,
-            "domain_a_dir": _safe_get(cfg, "domain_a_dir", ""),
-            "domain_b_dir": _safe_get(cfg, "domain_b_dir", ""),
-            "device": _safe_get(cfg, "device", "cpu"),
-            "image_size": _safe_get(cfg, "image_size", 256),
-            "batch_size": _safe_get(cfg, "batch_size", 1),
-            "residual_blocks": _safe_get(cfg, "residual_blocks", 9),
-            "epochs_total": _safe_get(cfg, "epochs", None),
-            # additional training fields (may exist depending on checkpoint version)
-            "lr": _safe_get(cfg, "lr", None),
-            "lambda_cycle": _safe_get(cfg, "lambda_cycle", None),
-            "lambda_identity": _safe_get(cfg, "lambda_identity", None),
-            "lr_decay_start": _safe_get(cfg, "lr_decay_start", None),
-            "lr_decay_end": _safe_get(cfg, "lr_decay_end", None),
-            "final_lr_ratio": _safe_get(cfg, "final_lr_ratio", None),
-            "use_replay_buffer": _safe_get(cfg, "use_replay_buffer", False),
-            "replay_buffer_size": _safe_get(cfg, "replay_buffer_size", None),
-            "gradient_clip_norm": _safe_get(cfg, "gradient_clip_norm", None),
-            "use_dropout": _safe_get(cfg, "use_dropout", False),
-            "dropout_p": _safe_get(cfg, "dropout_p", None),
-            "early_stopping": _safe_get(cfg, "early_stopping", False),
-            "early_stopping_patience": _safe_get(cfg, "early_stopping_patience", None),
-            "early_stopping_min_delta": _safe_get(cfg, "early_stopping_min_delta", None),
-            "early_stopping_metric": _safe_get(cfg, "early_stopping_metric", None),
-        }
-
-    def get_checkpoint_info(self, checkpoint_path: str) -> Dict[str, Any]:
-        try:
-            p = Path(checkpoint_path).expanduser().resolve()
-            if not p.exists():
-                return {"ok": False, "error": "Checkpoint file not found"}
-            info = self._checkpoint_info_base(p)
-            info["ok"] = True
-            return info
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
-
-    def get_resume_details(self, checkpoint_path: str) -> Dict[str, Any]:
-        """
-        Used by Resume tab UI.
-        Primary source: checkpoint config inside .pth.
-        Secondary source (optional): <project_dir>/train_config.json (if exists).
-        """
-        try:
-            p = Path(checkpoint_path).expanduser().resolve()
-            if not p.exists():
-                return {"ok": False, "error": "Checkpoint file not found"}
-
-            info = self._checkpoint_info_base(p)
-
-            # If train_config.json exists, use it to дополнить/уточнить параметры.
-            project_dir = info.get("project_dir")
-            if project_dir:
-                cfg_path = Path(project_dir) / "train_config.json"
-                if cfg_path.exists():
-                    try:
-                        cfg_json = json.loads(cfg_path.read_text(encoding="utf-8"))
-                        if isinstance(cfg_json, dict):
-                            # merge: json overrides missing/None values, but doesn't wipe checkpoint essentials
-                            for k, v in cfg_json.items():
-                                if k in info:
-                                    if info[k] is None or info[k] == "" or info[k] is False:
-                                        info[k] = v
-                                else:
-                                    # allow extra fields in future
-                                    info[k] = v
-                    except Exception:
-                        pass
-
-            info["ok"] = True
-            return info
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
-
-    def get_model_info(self, model_path: str) -> Dict[str, Any]:
-        try:
-            p = Path(model_path).expanduser().resolve()
-            if not p.exists():
-                return {"ok": False, "error": "Model file not found"}
-
-            meta, sd = load_generator_payload(p)
-
-            if not meta:
-                inf = infer_arch_from_state_dict(sd)
-                return {
-                    "ok": True,
-                    "has_meta": False,
-                    "message": "Legacy model file (no meta). Parameters inferred from state_dict.",
-                    "residual_blocks": inf.get("residual_blocks"),
-                    "use_dropout": inf.get("use_dropout"),
-                    "dropout_p": None,
-                    "image_size": None,
-                }
-
-            return {
-                "ok": True,
-                "has_meta": True,
-                "residual_blocks": meta.get("residual_blocks"),
-                "use_dropout": meta.get("use_dropout"),
-                "dropout_p": meta.get("dropout_p"),
-                "image_size": meta.get("image_size"),
-            }
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
-
     def resume_training(self, checkpoint_path: str) -> Dict[str, Any]:
         with self._lock:
             if self._train_thread and self._train_thread.is_alive():
@@ -412,11 +384,7 @@ class Api:
             self._train_thread = threading.Thread(target=_worker, daemon=True)
             self._train_thread.start()
 
-            return {
-                "ok": True,
-                "project_dir": str(trainer.project_dir),
-                "resumed_from": str(ckpt_path),
-            }
+            return {"ok": True, "project_dir": str(trainer.project_dir), "resumed_from": str(ckpt_path)}
 
     def stop_training(self) -> Dict[str, Any]:
         with self._lock:

@@ -76,8 +76,8 @@ function section(title, innerHtml){
   </div>`;
 }
 
-/* ---------- Dataset preview ---------- */
-function svgPlaceholder(){
+/* ---------- SVG placeholders ---------- */
+function svgPlaceholderSimple(){
   const svg =
 `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">
   <defs>
@@ -97,8 +97,29 @@ function svgPlaceholder(){
   return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
 }
 
+function svgPlaceholderNotFound(text){
+  const t = escapeHtml(text || "Датасет не найден");
+  const svg =
+`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#eef2ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="600" height="600" fill="url(#g)"/>
+  <rect x="18" y="18" width="564" height="564" rx="26" ry="26" fill="rgba(0,0,0,0.02)" stroke="rgba(0,0,0,0.10)"/>
+  <g transform="translate(0,0)">
+    <text x="300" y="290" text-anchor="middle" font-size="30" font-family="ui-sans-serif,system-ui" fill="rgba(0,0,0,0.62)">${t}</text>
+    <text x="300" y="335" text-anchor="middle" font-size="18" font-family="ui-sans-serif,system-ui" fill="rgba(0,0,0,0.45)">папка не существует или перемещена</text>
+  </g>
+</svg>`;
+  return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+}
+
+/* ---------- TRAIN: dataset preview ---------- */
 function setDatasetPlaceholders(side){
-  const ph = svgPlaceholder();
+  const ph = svgPlaceholderSimple();
   const setSide = (s) => {
     for(let i=1;i<=3;i++){
       const id = (s === "A" ? `prev-a-${i}` : `prev-b-${i}`);
@@ -129,7 +150,7 @@ async function refreshDatasetPreview(side){
     }
 
     const imgs = res.images || [];
-    const ph = svgPlaceholder();
+    const ph = svgPlaceholderSimple();
     for(let i=1;i<=3;i++){
       const el = $(side === "A" ? `prev-a-${i}` : `prev-b-${i}`);
       const item = imgs[i-1];
@@ -152,6 +173,103 @@ function schedulePreviewRefreshSide(side){
   }
 }
 
+/* ---------- INFER: training dataset preview ---------- */
+function setInferTrainPlaceholders(which, kind){
+  // kind: "simple" | "not_found"
+  const ph = (kind === "not_found") ? svgPlaceholderNotFound("Датасет не найден") : svgPlaceholderSimple();
+
+  const setA = () => {
+    for(let i=1;i<=4;i++){
+      const el = $(`infer-a-${i}`);
+      if(el) el.src = ph;
+    }
+  };
+  const setB = () => {
+    for(let i=1;i<=4;i++){
+      const el = $(`infer-b-${i}`);
+      if(el) el.src = ph;
+    }
+  };
+
+  if(which === "A") setA();
+  else if(which === "B") setB();
+  else { setA(); setB(); }
+}
+
+function setInferTrainNote(text){
+  const el = $("infer-train-note");
+  if(el) el.textContent = text || "";
+}
+
+async function refreshInferTrainingPreview(){
+  const modelPath = ($("infer-model").value || "").trim();
+  if(!modelPath){
+    setInferTrainPlaceholders("ALL", "simple");
+    setInferTrainNote("Выбери модель — появятся 4 случайные картинки из датасетов, на которых она обучалась.");
+    return;
+  }
+
+  try{
+    const res = await window.pywebview.api.get_infer_training_datasets_preview(modelPath, 4);
+    if(!res || !res.ok){
+      setInferTrainPlaceholders("ALL", "simple");
+      setInferTrainNote("Не удалось получить датасеты из модели.");
+      return;
+    }
+
+    // A
+    if(res.a_status === "ok"){
+      const ph = svgPlaceholderSimple();
+      const arr = res.a_images || [];
+      for(let i=1;i<=4;i++){
+        const el = $(`infer-a-${i}`);
+        const item = arr[i-1];
+        el.src = (item && item.data_url) ? item.data_url : ph;
+      }
+    }else if(res.a_status === "not_found"){
+      setInferTrainPlaceholders("A", "not_found");
+    }else{
+      setInferTrainPlaceholders("A", "simple");
+    }
+
+    // B
+    if(res.b_status === "ok"){
+      const ph = svgPlaceholderSimple();
+      const arr = res.b_images || [];
+      for(let i=1;i<=4;i++){
+        const el = $(`infer-b-${i}`);
+        const item = arr[i-1];
+        el.src = (item && item.data_url) ? item.data_url : ph;
+      }
+    }else if(res.b_status === "not_found"){
+      setInferTrainPlaceholders("B", "not_found");
+    }else{
+      setInferTrainPlaceholders("B", "simple");
+    }
+
+    // note
+    const aPath = res.domain_a_dir || "";
+    const bPath = res.domain_b_dir || "";
+    if(aPath || bPath){
+      const aTxt = aPath ? `A: ${aPath}` : "A: —";
+      const bTxt = bPath ? `B: ${bPath}` : "B: —";
+      setInferTrainNote(`${aTxt} | ${bTxt}`);
+    }else{
+      setInferTrainNote("");
+    }
+
+  }catch(e){
+    setInferTrainPlaceholders("ALL", "simple");
+    setInferTrainNote("Ошибка при получении датасетов из модели.");
+  }
+}
+
+let inferPreviewDebounce = null;
+function scheduleInferTrainingPreview(){
+  if(inferPreviewDebounce) clearTimeout(inferPreviewDebounce);
+  inferPreviewDebounce = setTimeout(refreshInferTrainingPreview, 150);
+}
+
 /* ---------- RESUME details ---------- */
 function setResumeInlineHtml(html){
   const el = $("resume-inline-project");
@@ -166,7 +284,6 @@ function resetResumeCards(){
   setResumeInlineHtml(
     section("—", `<div class="kv">${kvRow("Статус", `<span class="muted">Выбери чекпоинт</span>`)}</div>`)
   );
-  // two columns container requires two children
   setResumeParamsHtml(`
     <div class="resume-info">
       ${section("—", `<div class="kv">${kvRow("Статус", `<span class="muted">Выбери чекпоинт</span>`)}</div>`)}
@@ -228,7 +345,6 @@ function renderParamsTwoColumns(res){
   const mindelta = res.early_stopping_min_delta ?? "—";
   const metric = res.early_stopping_metric ?? "—";
 
-  // RIGHT column: summary/main/optimization
   const rightSummary = `<div class="badges">
     ${badge(String(device))}
     ${badge(`img ${imgSize}`)}
@@ -256,7 +372,6 @@ function renderParamsTwoColumns(res){
       </div>`)}
     </div>`;
 
-  // LEFT column: the rest
   const leftLoss =
     `<div class="kv">
       ${kvRow("λ cycle", badge(String(lc)))}
@@ -301,7 +416,6 @@ function renderParamsTwoColumns(res){
     </div>
   `;
 
-  // IMPORTANT: order is [LEFT][RIGHT]
   return leftCol + rightCol;
 }
 
@@ -462,9 +576,13 @@ async function loadDefaults(){
   }
 
   resetResumeCards();
+
+  // infer training datasets preview
+  setInferTrainPlaceholders("ALL", "simple");
+  setInferTrainNote("Выбери модель — появятся 4 случайные картинки из датасетов, на которых она обучалась.");
 }
 
-/* ---------- Training / inference unchanged ---------- */
+/* ---------- Training / inference ---------- */
 function buildTrainConfig(){
   const saveCkpt = $("train-save-ckpt").checked;
   let ckptInterval = toInt($("train-ckpt-interval").value) ?? 1;
@@ -749,10 +867,17 @@ window.addEventListener("pywebviewready", async () => {
   $("btn-pick-infer-model").addEventListener("click", async () => {
     await pickFileInto($("infer-model"), "Select generator model (.pth)", "pth");
     await refreshInferModelInfo();
+    scheduleInferTrainingPreview();
   });
 
-  $("infer-model").addEventListener("change", refreshInferModelInfo);
-  $("infer-model").addEventListener("blur", refreshInferModelInfo);
+  $("infer-model").addEventListener("change", async () => {
+    await refreshInferModelInfo();
+    scheduleInferTrainingPreview();
+  });
+  $("infer-model").addEventListener("blur", async () => {
+    await refreshInferModelInfo();
+    scheduleInferTrainingPreview();
+  });
 
   $("btn-pick-infer-input-file").addEventListener("click", async () => {
     await pickFileInto($("infer-input"), "Select input image file", "image");
@@ -795,4 +920,7 @@ window.addEventListener("pywebviewready", async () => {
 
   if(pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(pollTraining, 700);
+
+  // Initial infer datasets preview state
+  scheduleInferTrainingPreview();
 });
