@@ -760,6 +760,11 @@ async function refreshInferModelInfo(){
     return;
   }
 
+  if(!window.pywebview?.api?.get_model_info){
+    infoEl.textContent = "";
+    return;
+  }
+
   try{
     const res = await window.pywebview.api.get_model_info(path);
     if(!res.ok){
@@ -811,8 +816,7 @@ async function runInference(){
         <img src="${p.in_img}" />
         <img src="${p.out_img}" />
       </div>
-      <div class="cap">in: ${p.in_path}<br/>out: ${p.out_path}</div>
-    `;
+     `;
     gal.appendChild(div);
   });
 }

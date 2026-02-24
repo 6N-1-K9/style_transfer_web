@@ -434,7 +434,7 @@ class Api:
             return {"ok": False, "error": f"Inference failed: {e}"}
 
         previews = []
-        for pair in outputs[: min(12, len(outputs))]:
+        for pair in outputs[: min(16, len(outputs))]:
             try:
                 img_in = Image.open(pair[0]).convert("RGB")
                 img_out = Image.open(pair[1]).convert("RGB")

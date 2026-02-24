@@ -195,7 +195,7 @@ input:focus, select:focus{
 
 .gallery{
   display:grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));  
   gap:12px;
 }
 .item{
@@ -233,4 +233,15 @@ code{
   border-radius: 8px;
   background:#f1f5f9;
   border: 1px solid var(--border);
+}
+/* FORCE: inference preview grid 4 columns */
+#infer-gallery.gallery{
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important; /* можешь убрать, если у тебя уже есть gap */
+}
+
+#infer-gallery.gallery .item{
+  width: auto !important;
+  min-width: 0 !important;
 }
