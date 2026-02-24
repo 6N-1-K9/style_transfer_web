@@ -218,7 +218,6 @@ class Api:
                 return {"ok": False, "error": "Invalid checkpoint format"}
             cfg = raw["config"]
             epoch = int(raw["epoch"])
-            # infer project dir from path if possible
             project_dir = None
             if p.parent.name == "checkpoints":
                 project_dir = str(p.parent.parent)
@@ -238,11 +237,6 @@ class Api:
             return {"ok": False, "error": str(e)}
 
     def get_model_info(self, model_path: str) -> Dict[str, Any]:
-        """
-        Read meta from a generator model file saved into project/models/*.pth.
-
-        Returns (ok, has_meta, residual_blocks, use_dropout, dropout_p, image_size, message?).
-        """
         try:
             p = Path(model_path).expanduser().resolve()
             if not p.exists():
@@ -288,13 +282,11 @@ class Api:
             if not ckpt_path.exists():
                 return {"ok": False, "error": "Checkpoint file not found"}
 
-            # Create trainer from checkpoint (loads cfg + datasets paths)
             try:
                 trainer = CycleGANTrainer.resume_from_checkpoint(ckpt_path)
             except Exception as e:
                 return {"ok": False, "error": f"Failed to load checkpoint: {e}"}
 
-            # CUDA availability check (cfg comes from checkpoint)
             if (trainer.cfg.device or "").strip().lower() == "cuda":
                 st = get_cuda_status()
                 if not st.available:

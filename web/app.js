@@ -22,12 +22,19 @@ function toFloat(v){
   return Number.isNaN(n) ? null : n;
 }
 
-function setPillStatus(text, good=false, bad=false){
-  const el = $("pill-status");
-  el.textContent = text;
-  el.style.borderColor = "rgba(0,0,0,.12)";
-  if(good) el.style.borderColor = "rgba(22,163,74,.45)";
-  if(bad) el.style.borderColor = "rgba(220,38,38,.45)";
+function setVisible(el, visible){
+  if(!el) return;
+  el.style.display = visible ? "" : "none";
+}
+
+function updateDropoutVisibility(){
+  const enabled = $("train-dropout")?.checked === true;
+  setVisible($("train-dropout-settings"), enabled);
+}
+
+function updateEarlyStoppingVisibility(){
+  const enabled = $("train-early")?.checked === true;
+  setVisible($("train-early-settings"), enabled);
 }
 
 async function getCudaStatus(){
@@ -145,6 +152,10 @@ async function loadDefaults(){
     $("infer-device").value = c.device;
     $("infer-output").value = c.output_dir || "";
   }
+
+  // apply initial visibility
+  updateDropoutVisibility();
+  updateEarlyStoppingVisibility();
 }
 
 function buildTrainConfig(){
@@ -204,7 +215,6 @@ function buildTrainConfig(){
     checkpoint_interval_epochs: ckptInterval,
     keep_only_latest_checkpoint: $("train-ckpt-latest").checked,
 
-    // NEW model saving
     models_save_interval_enabled: modelIntervalEnabled,
     models_save_interval_epochs: modelInterval,
     models_keep_last_enabled: keepLastEnabled,
@@ -250,8 +260,9 @@ async function pollTraining(){
   const running = res.running;
 
   if(!st){
-    setPillStatus("Idle");
-    $("pill-lr").textContent = "LR: —";
+    // no trainer yet
+    setProgress(0);
+    $("train-stats").textContent = "Status: Idle";
     return;
   }
 
@@ -265,21 +276,19 @@ async function pollTraining(){
   setProgress(pct);
 
   const lr = st.lr ?? null;
-  $("pill-lr").textContent = lr !== null ? `LR: ${lr.toFixed(6)}` : "LR: —";
-
   const losses = st.last_losses || {};
-  const stats = `Epoch: ${st.epoch} | Step: ${step}/${total} | ` +
+
+  const statusText = running ? "Training" : (st.early_stopped ? "Idle (early stopped)" : "Idle");
+  const lrText = lr !== null ? lr.toFixed(6) : "—";
+
+  const stats =
+    `Status: ${statusText} | ` +
+    `LR: ${lrText} | ` +
+    `Epoch: ${st.epoch} | Step: ${step}/${total} | ` +
     `G_total: ${(losses.G_total ?? 0).toFixed(4)} | D_total: ${(losses.D_total ?? 0).toFixed(4)} | ` +
     `cycle: ${(losses.cycle ?? 0).toFixed(4)} | id: ${(losses.identity ?? 0).toFixed(4)} | adv: ${(losses.adv ?? 0).toFixed(4)}`;
 
   $("train-stats").textContent = stats;
-
-  if(running){
-    setPillStatus("Training…", true, false);
-  }else{
-    const stopped = st.early_stopped ? " (early stopped)" : "";
-    setPillStatus("Idle" + stopped, false, st.early_stopped);
-  }
 }
 
 async function startTraining(){
@@ -297,10 +306,10 @@ async function startTraining(){
     return;
   }
 
-  setPillStatus("Starting…");
+  $("train-stats").textContent = "Status: Starting…";
   const res = await window.pywebview.api.start_training(JSON.stringify(cfg));
   if(!res.ok){
-    setPillStatus("Error", false, true);
+    $("train-stats").textContent = "Status: Error";
     alert(res.error);
     return;
   }
@@ -337,9 +346,8 @@ async function refreshInferModelInfo(){
     }
 
     const src = res.has_meta ? "meta" : "state_dict";
-    const rb = (res.residual_blocks !== undefined && res.residual_blocks !== null) ? res.residual_blocks : "?";
-    const dr = (res.use_dropout === true) ? `on (p=${res.dropout_p ?? "?"})` : "off";
-    infoEl.textContent = `Параметры модели (${src}): residual_blocks=${rb}, dropout=${dr}.`;
+    const msg = res.has_meta ? "OK" : "Legacy (inferred)";
+    infoEl.textContent = `Модель прочитана (${src}): ${msg}.`;
   }catch(e){
     infoEl.textContent = "Не удалось прочитать модель: " + String(e);
   }
@@ -414,10 +422,10 @@ async function startResume(){
     return;
   }
 
-  setPillStatus("Resuming…");
+  $("train-stats").textContent = "Status: Resuming…";
   const res = await window.pywebview.api.resume_training(ckpt);
   if(!res.ok){
-    setPillStatus("Error", false, true);
+    $("train-stats").textContent = "Status: Error";
     alert(res.error);
     return;
   }
@@ -430,7 +438,6 @@ async function startResume(){
 
 window.addEventListener("pywebviewready", async () => {
   await loadDefaults();
-  setPillStatus("Idle");
 
   $("btn-train-start").addEventListener("click", startTraining);
   $("btn-train-stop").addEventListener("click", stopTraining);
@@ -481,6 +488,14 @@ window.addEventListener("pywebviewready", async () => {
   $("infer-device").addEventListener("change", async () => {
     await enforceCudaSelection($("infer-device"));
   });
+
+  // UI visibility toggles
+  $("train-dropout").addEventListener("change", updateDropoutVisibility);
+  $("train-early").addEventListener("change", updateEarlyStoppingVisibility);
+
+  // Apply once at start (just in case)
+  updateDropoutVisibility();
+  updateEarlyStoppingVisibility();
 
   if(pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(pollTraining, 700);
