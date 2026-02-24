@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import random
 import threading
 from dataclasses import asdict
 from pathlib import Path
@@ -8,7 +9,7 @@ from typing import Any, Dict, Optional
 
 import torch
 import webview
-from PIL import Image
+from PIL import Image, ImageOps
 
 from styler.config import InferenceConfig, TrainConfig
 from styler.device import get_cuda_status
@@ -38,6 +39,16 @@ def _ensure_dir_arg(start_dir: str) -> str:
         return str(p.resolve())
     except Exception:
         return ""
+
+
+def _make_thumb_data_url(img_path: Path, size: int = 420) -> str:
+    """
+    Make a reasonably small preview thumbnail. We do center-crop to avoid "half image" effects.
+    """
+    img = Image.open(img_path).convert("RGB")
+    # Center crop + resize to square
+    thumb = ImageOps.fit(img, (size, size), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+    return _pil_to_data_url(thumb, fmt="PNG")
 
 
 class Api:
@@ -142,6 +153,43 @@ class Api:
             return {"ok": False, "error": "Folder not found"}
         imgs = list_images(p, recursive=True)
         return {"ok": True, "count": len(imgs), "images": [str(x) for x in imgs[:2000]]}
+
+    def get_dataset_preview(self, folder: str, count: int = 3) -> Dict[str, Any]:
+        """
+        Returns N random image thumbnails from a folder (recursive search).
+        Used for UI dataset preview. If folder doesn't exist or has no images, returns ok=False.
+        """
+        try:
+            p = Path(folder).expanduser().resolve()
+            if not p.exists():
+                return {"ok": False, "error": "Folder not found"}
+
+            imgs = list_images(p, recursive=True)
+            if not imgs:
+                return {"ok": False, "error": "No images found"}
+
+            k = max(1, min(int(count or 3), 6))
+            chosen = random.sample(imgs, k=min(k, len(imgs)))
+
+            out = []
+            for ip in chosen:
+                try:
+                    out.append(
+                        {
+                            "path": str(ip),
+                            "data_url": _make_thumb_data_url(ip, size=420),
+                        }
+                    )
+                except Exception:
+                    continue
+
+            if not out:
+                return {"ok": False, "error": "Failed to load images"}
+
+            # if we couldn't load enough, still ok; UI will fill placeholders
+            return {"ok": True, "images": out}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
 
     # ---------- Defaults ----------
     def get_default_train_config(self) -> Dict[str, Any]:
@@ -393,12 +441,10 @@ def run_web() -> None:
     gui = None
     try:
         import qtpy  # noqa: F401
-
         gui = "qt"
     except Exception:
         try:
             import gi  # noqa: F401
-
             gui = "gtk"
         except Exception:
             gui = None

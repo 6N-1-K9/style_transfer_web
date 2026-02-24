@@ -37,6 +37,94 @@ function updateEarlyStoppingVisibility(){
   setVisible($("train-early-settings"), enabled);
 }
 
+function updateReplayVisibility(){
+  const enabled = $("train-replay")?.checked === true;
+  setVisible($("train-replay-settings"), enabled);
+}
+
+/* ---------- Dataset preview ---------- */
+function svgPlaceholder(){
+  // square, no text
+  const svg =
+`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f1f5f9"/>
+      <stop offset="1" stop-color="#e2e8f0"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="600" height="600" fill="url(#g)"/>
+  <rect x="18" y="18" width="564" height="564" rx="26" ry="26" fill="rgba(0,0,0,0.03)" stroke="rgba(0,0,0,0.10)"/>
+  <!-- simple "image" icon -->
+  <g transform="translate(170,190)" fill="rgba(0,0,0,0.18)">
+    <rect x="0" y="0" width="260" height="210" rx="18" ry="18" fill="rgba(0,0,0,0.06)" stroke="rgba(0,0,0,0.16)" />
+    <circle cx="72" cy="70" r="18" />
+    <path d="M30 180 L110 115 L160 155 L205 125 L235 180 Z" />
+  </g>
+</svg>`;
+  return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+}
+
+function setDatasetPlaceholders(side){
+  // side: "A" | "B" | null (both)
+  const ph = svgPlaceholder();
+  const setSide = (s) => {
+    for(let i=1;i<=3;i++){
+      const id = (s === "A" ? `prev-a-${i}` : `prev-b-${i}`);
+      const el = $(id);
+      if(el) el.src = ph;
+    }
+  };
+  if(!side){
+    setSide("A");
+    setSide("B");
+  }else{
+    setSide(side);
+  }
+}
+
+async function refreshDatasetPreview(side){
+  // side: "A" or "B"
+  const folder = (side === "A" ? $("train-a").value : $("train-b").value).trim();
+
+  if(!folder){
+    setDatasetPlaceholders(side);
+    return;
+  }
+
+  try{
+    const res = await window.pywebview.api.get_dataset_preview(folder, 3);
+    if(!res || !res.ok){
+      setDatasetPlaceholders(side);
+      return;
+    }
+
+    const imgs = res.images || [];
+    const ph = svgPlaceholder();
+    for(let i=1;i<=3;i++){
+      const el = $(side === "A" ? `prev-a-${i}` : `prev-b-${i}`);
+      const item = imgs[i-1];
+      el.src = (item && item.data_url) ? item.data_url : ph;
+    }
+  }catch(e){
+    setDatasetPlaceholders(side);
+  }
+}
+
+// Debounce per side (so A refresh doesn't trigger B and vice versa)
+let debounceA = null;
+let debounceB = null;
+function schedulePreviewRefreshSide(side){
+  if(side === "A"){
+    if(debounceA) clearTimeout(debounceA);
+    debounceA = setTimeout(() => refreshDatasetPreview("A"), 200);
+  }else{
+    if(debounceB) clearTimeout(debounceB);
+    debounceB = setTimeout(() => refreshDatasetPreview("B"), 200);
+  }
+}
+
+/* ---------- CUDA ---------- */
 async function getCudaStatus(){
   try{
     const res = await window.pywebview.api.get_cuda_status();
@@ -64,6 +152,9 @@ async function pickFolderInto(inputEl, title){
   const res = await window.pywebview.api.pick_folder(title || "Select folder", start);
   if(res && res.ok && res.path){
     inputEl.value = res.path;
+    try{
+      inputEl.dispatchEvent(new Event("change"));
+    }catch(_){}
     return;
   }
   if(res && res.canceled) return;
@@ -75,6 +166,9 @@ async function pickFileInto(inputEl, title, kind){
   const res = await window.pywebview.api.pick_file(title || "Select file", start, kind || "any");
   if(res && res.ok && res.path){
     inputEl.value = res.path;
+    try{
+      inputEl.dispatchEvent(new Event("change"));
+    }catch(_){}
     return;
   }
   if(res && res.canceled) return;
@@ -153,9 +247,21 @@ async function loadDefaults(){
     $("infer-output").value = c.output_dir || "";
   }
 
-  // apply initial visibility
   updateDropoutVisibility();
   updateEarlyStoppingVisibility();
+  updateReplayVisibility();
+
+  // Initial placeholders only. No auto refresh of both sides.
+  setDatasetPlaceholders(null);
+
+  // If defaults already contain dataset paths (rare), you may still want initial load:
+  // We'll update each side only if the corresponding path is non-empty.
+  if(($("train-a").value || "").trim()){
+    schedulePreviewRefreshSide("A");
+  }
+  if(($("train-b").value || "").trim()){
+    schedulePreviewRefreshSide("B");
+  }
 }
 
 function buildTrainConfig(){
@@ -260,7 +366,6 @@ async function pollTraining(){
   const running = res.running;
 
   if(!st){
-    // no trainer yet
     setProgress(0);
     $("train-stats").textContent = "Status: Idle";
     return;
@@ -449,10 +554,22 @@ window.addEventListener("pywebviewready", async () => {
 
   $("btn-pick-train-a").addEventListener("click", async () => {
     await pickFolderInto($("train-a"), "Select Domain A folder");
+    // IMPORTANT: refresh only A (no touching B)
+    schedulePreviewRefreshSide("A");
   });
+
   $("btn-pick-train-b").addEventListener("click", async () => {
     await pickFolderInto($("train-b"), "Select Domain B folder");
+    // IMPORTANT: refresh only B (no touching A)
+    schedulePreviewRefreshSide("B");
   });
+
+  // Manual edits: update only that side on change/blur
+  $("train-a").addEventListener("change", () => schedulePreviewRefreshSide("A"));
+  $("train-a").addEventListener("blur", () => schedulePreviewRefreshSide("A"));
+
+  $("train-b").addEventListener("change", () => schedulePreviewRefreshSide("B"));
+  $("train-b").addEventListener("blur", () => schedulePreviewRefreshSide("B"));
 
   $("btn-pick-infer-model").addEventListener("click", async () => {
     await pickFileInto($("infer-model"), "Select generator model (.pth)", "pth");
@@ -492,10 +609,12 @@ window.addEventListener("pywebviewready", async () => {
   // UI visibility toggles
   $("train-dropout").addEventListener("change", updateDropoutVisibility);
   $("train-early").addEventListener("change", updateEarlyStoppingVisibility);
+  $("train-replay").addEventListener("change", updateReplayVisibility);
 
-  // Apply once at start (just in case)
+  // Apply once at start
   updateDropoutVisibility();
   updateEarlyStoppingVisibility();
+  updateReplayVisibility();
 
   if(pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(pollTraining, 700);

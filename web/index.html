@@ -5,7 +5,43 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Style Transfer CycleGAN</title>
   <link rel="stylesheet" href="./styles.css" />
+
+  <!-- dataset preview styles (local, to avoid touching styles.css) -->
+  <style>
+    .dataset-preview-wrap{
+      max-height: 520px; /* ограничиваем рост карточки превью */
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .dataset-preview{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .dataset-col .col-title{
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .dataset-col .thumbs{
+      display: grid;
+      grid-template-rows: repeat(3, 1fr);
+      gap: 10px;
+    }
+    /* square thumbnails */
+    .dataset-col img{
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      height: auto;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid rgba(0,0,0,.08);
+      background: rgba(0,0,0,.03);
+      display:block;
+    }
+  </style>
 </head>
+
 <body>
   <div class="app">
     <main class="content">
@@ -93,6 +129,7 @@
 
           <div class="card">
             <h2>Модель</h2>
+
             <div class="row2">
               <div class="row">
                 <label>Residual blocks</label>
@@ -169,9 +206,13 @@
             <div class="row">
               <label><input id="train-replay" type="checkbox" /> Replay buffer</label>
             </div>
-            <div class="row">
-              <label>Replay buffer size</label>
-              <input id="train-replaysize" type="number" min="1" step="1" />
+
+            <!-- Replay settings (hide when replay unchecked) -->
+            <div id="train-replay-settings">
+              <div class="row">
+                <label>Replay buffer size</label>
+                <input id="train-replaysize" type="number" min="1" step="1" />
+              </div>
             </div>
 
             <div class="row">
@@ -202,14 +243,37 @@
               </div>
             </div>
 
-            <div class="actions">
-              <button class="btn primary" id="btn-train-start">Start training</button>
-              <button class="btn danger" id="btn-train-stop">Stop</button>
-            </div>
-
             <div class="small muted" id="train-run-dir"></div>
           </div>
 
+          <!-- PREVIEW (center column) -->
+          <div class="card" id="card-dataset-preview">
+            <h2>Превью датасетов</h2>
+
+            <div class="dataset-preview-wrap">
+              <div class="dataset-preview">
+                <div class="dataset-col">
+                  <div class="col-title">Domain A</div>
+                  <div class="thumbs">
+                    <img id="prev-a-1" alt="A preview 1" />
+                    <img id="prev-a-2" alt="A preview 2" />
+                    <img id="prev-a-3" alt="A preview 3" />
+                  </div>
+                </div>
+
+                <div class="dataset-col">
+                  <div class="col-title">Domain B</div>
+                  <div class="thumbs">
+                    <img id="prev-b-1" alt="B preview 1" />
+                    <img id="prev-b-2" alt="B preview 2" />
+                    <img id="prev-b-3" alt="B preview 3" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SAVING (right column) -->
           <div class="card">
             <h2>Сохранение</h2>
 
@@ -226,8 +290,6 @@
                 <label><input id="train-ckpt-latest" type="checkbox" /> Keep only latest checkpoint</label>
               </div>
             </div>
-
-            <hr style="border:0;border-top:1px solid var(--border); margin:12px 0;">
 
             <div class="row">
               <label><input id="train-model-interval-enabled" type="checkbox" checked /> Save models by interval</label>
@@ -248,15 +310,13 @@
               <input id="train-model-keep-last-count" type="number" min="1" step="1" />
             </div>
 
-            <hr style="border:0;border-top:1px solid var(--border); margin:12px 0;">
-
-            <!-- moved here from Model -->
             <div class="row">
               <label><input id="train-save-b2a" type="checkbox" checked /> Save B2A models (экономия места: выключи)</label>
             </div>
 
-            <div class="small muted">
-              Модели сохраняются в <code>project/models/</code>, чекпоинты — в <code>project/checkpoints/</code>.
+            <div class="actions">
+              <button class="btn primary" id="btn-train-start">Start training</button>
+              <button class="btn danger" id="btn-train-stop">Stop</button>
             </div>
           </div>
 
