@@ -31,20 +31,53 @@ function updateDropoutVisibility(){
   const enabled = $("train-dropout")?.checked === true;
   setVisible($("train-dropout-settings"), enabled);
 }
-
 function updateEarlyStoppingVisibility(){
   const enabled = $("train-early")?.checked === true;
   setVisible($("train-early-settings"), enabled);
 }
-
 function updateReplayVisibility(){
   const enabled = $("train-replay")?.checked === true;
   setVisible($("train-replay-settings"), enabled);
 }
 
+/* ---------- helpers ---------- */
+function escapeHtml(s){
+  if (s === null || s === undefined) return "";
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+function fmtNum(v, digits=6){
+  if(v === null || v === undefined) return "—";
+  const n = Number(v);
+  if(Number.isNaN(n)) return escapeHtml(v);
+  const out = (Math.abs(n) < 1 && digits > 0) ? n.toFixed(digits) : String(n);
+  return out;
+}
+function badge(text, cls=""){
+  return `<span class="badge ${cls}">${escapeHtml(text)}</span>`;
+}
+function onOffBadge(flag){
+  return flag ? badge("on", "on") : badge("off", "off");
+}
+function kvRow(key, valHtml){
+  return `<div class="kv-row">
+    <div class="kv-key">${escapeHtml(key)}</div>
+    <div class="kv-val">${valHtml}</div>
+  </div>`;
+}
+function section(title, innerHtml){
+  return `<div class="resume-section">
+    <div class="resume-section-title">${escapeHtml(title)}</div>
+    ${innerHtml}
+  </div>`;
+}
+
 /* ---------- Dataset preview ---------- */
 function svgPlaceholder(){
-  // square, no text
   const svg =
 `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">
   <defs>
@@ -55,7 +88,6 @@ function svgPlaceholder(){
   </defs>
   <rect x="0" y="0" width="600" height="600" fill="url(#g)"/>
   <rect x="18" y="18" width="564" height="564" rx="26" ry="26" fill="rgba(0,0,0,0.03)" stroke="rgba(0,0,0,0.10)"/>
-  <!-- simple "image" icon -->
   <g transform="translate(170,190)" fill="rgba(0,0,0,0.18)">
     <rect x="0" y="0" width="260" height="210" rx="18" ry="18" fill="rgba(0,0,0,0.06)" stroke="rgba(0,0,0,0.16)" />
     <circle cx="72" cy="70" r="18" />
@@ -66,7 +98,6 @@ function svgPlaceholder(){
 }
 
 function setDatasetPlaceholders(side){
-  // side: "A" | "B" | null (both)
   const ph = svgPlaceholder();
   const setSide = (s) => {
     for(let i=1;i<=3;i++){
@@ -84,9 +115,7 @@ function setDatasetPlaceholders(side){
 }
 
 async function refreshDatasetPreview(side){
-  // side: "A" or "B"
   const folder = (side === "A" ? $("train-a").value : $("train-b").value).trim();
-
   if(!folder){
     setDatasetPlaceholders(side);
     return;
@@ -111,7 +140,6 @@ async function refreshDatasetPreview(side){
   }
 }
 
-// Debounce per side (so A refresh doesn't trigger B and vice versa)
 let debounceA = null;
 let debounceB = null;
 function schedulePreviewRefreshSide(side){
@@ -122,6 +150,185 @@ function schedulePreviewRefreshSide(side){
     if(debounceB) clearTimeout(debounceB);
     debounceB = setTimeout(() => refreshDatasetPreview("B"), 200);
   }
+}
+
+/* ---------- RESUME details ---------- */
+function setResumeInlineHtml(html){
+  const el = $("resume-inline-project");
+  if(el) el.innerHTML = html || "";
+}
+function setResumeParamsHtml(html){
+  const el = $("resume-card-params");
+  if(el) el.innerHTML = html || "";
+}
+
+function resetResumeCards(){
+  setResumeInlineHtml(
+    section("—", `<div class="kv">${kvRow("Статус", `<span class="muted">Выбери чекпоинт</span>`)}</div>`)
+  );
+  // two columns container requires two children
+  setResumeParamsHtml(`
+    <div class="resume-info">
+      ${section("—", `<div class="kv">${kvRow("Статус", `<span class="muted">Выбери чекпоинт</span>`)}</div>`)}
+    </div>
+    <div class="resume-info">
+      ${section("—", `<div class="kv">${kvRow("Статус", `<span class="muted">Выбери чекпоинт</span>`)}</div>`)}
+    </div>
+  `);
+}
+
+function renderInlineProject(res){
+  const epoch = (res.epoch !== undefined && res.epoch !== null) ? String(res.epoch) : "—";
+
+  const summaryBadges = `<div class="badges">
+    ${badge(`epoch ${epoch}`)}
+    ${badge(String(res.device || "—"))}
+    ${badge(`img ${res.image_size ?? "—"}`)}
+    ${badge(`batch ${res.batch_size ?? "—"}`)}
+  </div>`;
+
+  const pathsKv =
+    `<div class="kv">
+      ${kvRow("Project", `<span class="kv-val">${escapeHtml(res.project_dir || "—")}</span>`)}
+      ${kvRow("Domain A", `<span class="kv-val">${escapeHtml(res.domain_a_dir || "—")}</span>`)}
+      ${kvRow("Domain B", `<span class="kv-val">${escapeHtml(res.domain_b_dir || "—")}</span>`)}
+    </div>`;
+
+  return `
+    <div class="resume-info">
+      ${section("Сводка", summaryBadges)}
+      ${section("Пути", pathsKv)}
+    </div>
+  `;
+}
+
+function renderParamsTwoColumns(res){
+  const device = res.device || "—";
+  const imgSize = (res.image_size ?? "—");
+  const batch = (res.batch_size ?? "—");
+  const resb = (res.residual_blocks ?? "—");
+
+  const lr = res.lr ?? "—";
+  const dStart = res.lr_decay_start ?? "—";
+  const dEnd = res.lr_decay_end ?? "—";
+  const finalRatio = res.final_lr_ratio ?? "—";
+
+  const lc = res.lambda_cycle ?? "—";
+  const li = res.lambda_identity ?? "—";
+
+  const replayOn = !!res.use_replay_buffer;
+  const replaySize = res.replay_buffer_size ?? "—";
+  const gclip = res.gradient_clip_norm ?? "—";
+
+  const dropoutOn = !!res.use_dropout;
+  const dropoutP = res.dropout_p ?? "—";
+
+  const earlyOn = !!res.early_stopping;
+  const patience = res.early_stopping_patience ?? "—";
+  const mindelta = res.early_stopping_min_delta ?? "—";
+  const metric = res.early_stopping_metric ?? "—";
+
+  // RIGHT column: summary/main/optimization
+  const rightSummary = `<div class="badges">
+    ${badge(String(device))}
+    ${badge(`img ${imgSize}`)}
+    ${badge(`batch ${batch}`)}
+    ${badge(`res ${resb}`)}
+    ${badge(`LR ${fmtNum(lr, 6)}`)}
+  </div>`;
+
+  const rightMain =
+    `<div class="kv">
+      ${kvRow("Device", badge(device))}
+      ${kvRow("Image size", badge(String(imgSize)))}
+      ${kvRow("Batch size", badge(String(batch)))}
+      ${kvRow("Residual blocks", badge(String(resb)))}
+      ${kvRow("Epochs (total)", badge(String(res.epochs_total ?? "—")))}
+    </div>`;
+
+  const rightOpt =
+    `<div class="kv">
+      ${kvRow("LR", badge(`LR ${fmtNum(lr, 6)}`))}
+      ${kvRow("LR decay", `<div class="badges">
+        ${badge(`start ${dStart}`)}
+        ${badge(`end ${dEnd}`)}
+        ${badge(`final ${finalRatio}`)}
+      </div>`)}
+    </div>`;
+
+  // LEFT column: the rest
+  const leftLoss =
+    `<div class="kv">
+      ${kvRow("λ cycle", badge(String(lc)))}
+      ${kvRow("λ identity", badge(String(li)))}
+    </div>`;
+
+  const leftStab =
+    `<div class="kv">
+      ${kvRow("Replay buffer", onOffBadge(replayOn))}
+      ${replayOn ? kvRow("Replay size", badge(String(replaySize))) : ""}
+      ${kvRow("Gradient clip", badge(String(gclip)))}
+    </div>`;
+
+  const leftReg =
+    `<div class="kv">
+      ${kvRow("Dropout", onOffBadge(dropoutOn))}
+      ${dropoutOn ? kvRow("Dropout p", badge(String(dropoutP))) : ""}
+    </div>`;
+
+  const leftEarly =
+    `<div class="kv">
+      ${kvRow("Enabled", onOffBadge(earlyOn))}
+      ${earlyOn ? kvRow("Patience", badge(String(patience))) : ""}
+      ${earlyOn ? kvRow("Min delta", badge(String(mindelta))) : ""}
+      ${earlyOn ? kvRow("Metric", badge(String(metric))) : ""}
+    </div>`;
+
+  const leftCol = `
+    <div class="resume-info">
+      ${section("Loss weights", leftLoss)}
+      ${section("Стабилизация", leftStab)}
+      ${section("Регуляризация", leftReg)}
+      ${section("Early stopping", leftEarly)}
+    </div>
+  `;
+
+  const rightCol = `
+    <div class="resume-info">
+      ${section("Сводка", rightSummary)}
+      ${section("Основное", rightMain)}
+      ${section("Оптимизация", rightOpt)}
+    </div>
+  `;
+
+  // IMPORTANT: order is [LEFT][RIGHT]
+  return leftCol + rightCol;
+}
+
+async function refreshResumeDetails(){
+  const path = ($("resume-ckpt").value || "").trim();
+  if(!path){
+    resetResumeCards();
+    return;
+  }
+
+  try{
+    const res = await window.pywebview.api.get_resume_details(path);
+    if(!res || !res.ok){
+      resetResumeCards();
+      return;
+    }
+    setResumeInlineHtml(renderInlineProject(res));
+    setResumeParamsHtml(renderParamsTwoColumns(res));
+  }catch(e){
+    resetResumeCards();
+  }
+}
+
+let resumeDebounce = null;
+function scheduleResumeRefresh(){
+  if(resumeDebounce) clearTimeout(resumeDebounce);
+  resumeDebounce = setTimeout(refreshResumeDetails, 200);
 }
 
 /* ---------- CUDA ---------- */
@@ -152,9 +359,7 @@ async function pickFolderInto(inputEl, title){
   const res = await window.pywebview.api.pick_folder(title || "Select folder", start);
   if(res && res.ok && res.path){
     inputEl.value = res.path;
-    try{
-      inputEl.dispatchEvent(new Event("change"));
-    }catch(_){}
+    try{ inputEl.dispatchEvent(new Event("change")); }catch(_){}
     return;
   }
   if(res && res.canceled) return;
@@ -166,9 +371,7 @@ async function pickFileInto(inputEl, title, kind){
   const res = await window.pywebview.api.pick_file(title || "Select file", start, kind || "any");
   if(res && res.ok && res.path){
     inputEl.value = res.path;
-    try{
-      inputEl.dispatchEvent(new Event("change"));
-    }catch(_){}
+    try{ inputEl.dispatchEvent(new Event("change")); }catch(_){}
     return;
   }
   if(res && res.canceled) return;
@@ -226,12 +429,10 @@ async function loadDefaults(){
     $("stat-lr").checked = sts.includes("lr_csv");
     $("stat-logs").checked = sts.includes("logs_txt");
 
-    // checkpoint controls
     $("train-save-ckpt").checked = (c.save_checkpoints !== false);
     $("train-ckpt-interval").value = c.checkpoint_interval_epochs ?? 1;
     $("train-ckpt-latest").checked = (c.keep_only_latest_checkpoint === true);
 
-    // model saving controls
     $("train-model-interval-enabled").checked = (c.models_save_interval_enabled !== false);
     $("train-model-interval").value = c.models_save_interval_epochs ?? 1;
 
@@ -251,19 +452,19 @@ async function loadDefaults(){
   updateEarlyStoppingVisibility();
   updateReplayVisibility();
 
-  // Initial placeholders only. No auto refresh of both sides.
   setDatasetPlaceholders(null);
 
-  // If defaults already contain dataset paths (rare), you may still want initial load:
-  // We'll update each side only if the corresponding path is non-empty.
   if(($("train-a").value || "").trim()){
     schedulePreviewRefreshSide("A");
   }
   if(($("train-b").value || "").trim()){
     schedulePreviewRefreshSide("B");
   }
+
+  resetResumeCards();
 }
 
+/* ---------- Training / inference unchanged ---------- */
 function buildTrainConfig(){
   const saveCkpt = $("train-save-ckpt").checked;
   let ckptInterval = toInt($("train-ckpt-interval").value) ?? 1;
@@ -344,14 +545,12 @@ function setConsole(lines){
   el.textContent = lines.join("\n");
   el.scrollTop = el.scrollHeight;
 }
-
 function setResumeConsole(lines){
   const el = $("resume-console");
   if(!el) return;
   el.textContent = lines.join("\n");
   el.scrollTop = el.scrollHeight;
 }
-
 function setProgress(pct){
   $("train-progress").style.width = `${pct}%`;
 }
@@ -501,25 +700,6 @@ async function runInference(){
 }
 
 /* -------- RESUME -------- */
-async function showCheckpointInfo(){
-  const path = ($("resume-ckpt").value || "").trim();
-  if(!path){
-    alert("Выбери чекпоинт.");
-    return;
-  }
-  const res = await window.pywebview.api.get_checkpoint_info(path);
-  if(!res.ok){
-    $("resume-info").textContent = "Error: " + res.error;
-    alert(res.error);
-    return;
-  }
-  $("resume-info").textContent =
-    `Epoch in checkpoint: ${res.epoch}. ` +
-    `Project: ${res.project_dir || "(unknown)"} | ` +
-    `A: ${res.domain_a_dir} | B: ${res.domain_b_dir} | ` +
-    `img=${res.image_size}, batch=${res.batch_size}, res=${res.residual_blocks}, device=${res.device}`;
-}
-
 async function startResume(){
   const ckpt = ($("resume-ckpt").value || "").trim();
   if(!ckpt){
@@ -534,8 +714,6 @@ async function startResume(){
     alert(res.error);
     return;
   }
-
-  $("resume-run-dir").textContent = `Project dir: ${res.project_dir} | resumed from: ${res.resumed_from}`;
 
   if(pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(pollTraining, 700);
@@ -554,17 +732,14 @@ window.addEventListener("pywebviewready", async () => {
 
   $("btn-pick-train-a").addEventListener("click", async () => {
     await pickFolderInto($("train-a"), "Select Domain A folder");
-    // IMPORTANT: refresh only A (no touching B)
     schedulePreviewRefreshSide("A");
   });
 
   $("btn-pick-train-b").addEventListener("click", async () => {
     await pickFolderInto($("train-b"), "Select Domain B folder");
-    // IMPORTANT: refresh only B (no touching A)
     schedulePreviewRefreshSide("B");
   });
 
-  // Manual edits: update only that side on change/blur
   $("train-a").addEventListener("change", () => schedulePreviewRefreshSide("A"));
   $("train-a").addEventListener("blur", () => schedulePreviewRefreshSide("A"));
 
@@ -593,10 +768,13 @@ window.addEventListener("pywebviewready", async () => {
   // Resume UI
   $("btn-pick-resume-ckpt").addEventListener("click", async () => {
     await pickFileInto($("resume-ckpt"), "Select checkpoint (.pth)", "pth");
+    scheduleResumeRefresh();
   });
-  $("btn-resume-info").addEventListener("click", showCheckpointInfo);
   $("btn-resume-start").addEventListener("click", startResume);
   $("btn-resume-stop").addEventListener("click", stopTraining);
+
+  $("resume-ckpt").addEventListener("change", scheduleResumeRefresh);
+  $("resume-ckpt").addEventListener("blur", scheduleResumeRefresh);
 
   // Device change checks
   $("train-device").addEventListener("change", async () => {
@@ -611,7 +789,6 @@ window.addEventListener("pywebviewready", async () => {
   $("train-early").addEventListener("change", updateEarlyStoppingVisibility);
   $("train-replay").addEventListener("change", updateReplayVisibility);
 
-  // Apply once at start
   updateDropoutVisibility();
   updateEarlyStoppingVisibility();
   updateReplayVisibility();

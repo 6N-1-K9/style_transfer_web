@@ -43,12 +43,18 @@ def _ensure_dir_arg(start_dir: str) -> str:
 
 def _make_thumb_data_url(img_path: Path, size: int = 420) -> str:
     """
-    Make a reasonably small preview thumbnail. We do center-crop to avoid "half image" effects.
+    Make a reasonably small preview thumbnail. We do center-crop to keep it visually nice.
     """
     img = Image.open(img_path).convert("RGB")
-    # Center crop + resize to square
     thumb = ImageOps.fit(img, (size, size), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
     return _pil_to_data_url(thumb, fmt="PNG")
+
+
+def _safe_get(d: Dict[str, Any], key: str, default: Any = None) -> Any:
+    try:
+        return d.get(key, default)
+    except Exception:
+        return default
 
 
 class Api:
@@ -155,10 +161,6 @@ class Api:
         return {"ok": True, "count": len(imgs), "images": [str(x) for x in imgs[:2000]]}
 
     def get_dataset_preview(self, folder: str, count: int = 3) -> Dict[str, Any]:
-        """
-        Returns N random image thumbnails from a folder (recursive search).
-        Used for UI dataset preview. If folder doesn't exist or has no images, returns ok=False.
-        """
         try:
             p = Path(folder).expanduser().resolve()
             if not p.exists():
@@ -174,19 +176,13 @@ class Api:
             out = []
             for ip in chosen:
                 try:
-                    out.append(
-                        {
-                            "path": str(ip),
-                            "data_url": _make_thumb_data_url(ip, size=420),
-                        }
-                    )
+                    out.append({"path": str(ip), "data_url": _make_thumb_data_url(ip, size=420)})
                 except Exception:
                     continue
 
             if not out:
                 return {"ok": False, "error": "Failed to load images"}
 
-            # if we couldn't load enough, still ok; UI will fill placeholders
             return {"ok": True, "images": out}
         except Exception as e:
             return {"ok": False, "error": str(e)}
@@ -256,31 +252,93 @@ class Api:
 
             return {"ok": True, "project_dir": str(project_dir)}
 
+    def _checkpoint_info_base(self, p: Path) -> Dict[str, Any]:
+        raw = torch.load(p, map_location="cpu")
+        if not isinstance(raw, dict) or "config" not in raw or "epoch" not in raw:
+            raise ValueError("Invalid checkpoint format")
+
+        cfg = raw["config"]
+        if not isinstance(cfg, dict):
+            cfg = {}
+
+        epoch = int(raw["epoch"])
+        project_dir = None
+        if p.parent.name == "checkpoints":
+            project_dir = str(p.parent.parent)
+
+        return {
+            "epoch": epoch,
+            "project_dir": project_dir,
+            "domain_a_dir": _safe_get(cfg, "domain_a_dir", ""),
+            "domain_b_dir": _safe_get(cfg, "domain_b_dir", ""),
+            "device": _safe_get(cfg, "device", "cpu"),
+            "image_size": _safe_get(cfg, "image_size", 256),
+            "batch_size": _safe_get(cfg, "batch_size", 1),
+            "residual_blocks": _safe_get(cfg, "residual_blocks", 9),
+            "epochs_total": _safe_get(cfg, "epochs", None),
+            # additional training fields (may exist depending on checkpoint version)
+            "lr": _safe_get(cfg, "lr", None),
+            "lambda_cycle": _safe_get(cfg, "lambda_cycle", None),
+            "lambda_identity": _safe_get(cfg, "lambda_identity", None),
+            "lr_decay_start": _safe_get(cfg, "lr_decay_start", None),
+            "lr_decay_end": _safe_get(cfg, "lr_decay_end", None),
+            "final_lr_ratio": _safe_get(cfg, "final_lr_ratio", None),
+            "use_replay_buffer": _safe_get(cfg, "use_replay_buffer", False),
+            "replay_buffer_size": _safe_get(cfg, "replay_buffer_size", None),
+            "gradient_clip_norm": _safe_get(cfg, "gradient_clip_norm", None),
+            "use_dropout": _safe_get(cfg, "use_dropout", False),
+            "dropout_p": _safe_get(cfg, "dropout_p", None),
+            "early_stopping": _safe_get(cfg, "early_stopping", False),
+            "early_stopping_patience": _safe_get(cfg, "early_stopping_patience", None),
+            "early_stopping_min_delta": _safe_get(cfg, "early_stopping_min_delta", None),
+            "early_stopping_metric": _safe_get(cfg, "early_stopping_metric", None),
+        }
+
     def get_checkpoint_info(self, checkpoint_path: str) -> Dict[str, Any]:
         try:
             p = Path(checkpoint_path).expanduser().resolve()
             if not p.exists():
                 return {"ok": False, "error": "Checkpoint file not found"}
-            raw = torch.load(p, map_location="cpu")
-            if not isinstance(raw, dict) or "config" not in raw or "epoch" not in raw:
-                return {"ok": False, "error": "Invalid checkpoint format"}
-            cfg = raw["config"]
-            epoch = int(raw["epoch"])
-            project_dir = None
-            if p.parent.name == "checkpoints":
-                project_dir = str(p.parent.parent)
-            return {
-                "ok": True,
-                "epoch": epoch,
-                "project_dir": project_dir,
-                "domain_a_dir": cfg.get("domain_a_dir", ""),
-                "domain_b_dir": cfg.get("domain_b_dir", ""),
-                "device": cfg.get("device", "cpu"),
-                "image_size": cfg.get("image_size", 256),
-                "batch_size": cfg.get("batch_size", 1),
-                "residual_blocks": cfg.get("residual_blocks", 9),
-                "epochs_total": cfg.get("epochs", None),
-            }
+            info = self._checkpoint_info_base(p)
+            info["ok"] = True
+            return info
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    def get_resume_details(self, checkpoint_path: str) -> Dict[str, Any]:
+        """
+        Used by Resume tab UI.
+        Primary source: checkpoint config inside .pth.
+        Secondary source (optional): <project_dir>/train_config.json (if exists).
+        """
+        try:
+            p = Path(checkpoint_path).expanduser().resolve()
+            if not p.exists():
+                return {"ok": False, "error": "Checkpoint file not found"}
+
+            info = self._checkpoint_info_base(p)
+
+            # If train_config.json exists, use it to дополнить/уточнить параметры.
+            project_dir = info.get("project_dir")
+            if project_dir:
+                cfg_path = Path(project_dir) / "train_config.json"
+                if cfg_path.exists():
+                    try:
+                        cfg_json = json.loads(cfg_path.read_text(encoding="utf-8"))
+                        if isinstance(cfg_json, dict):
+                            # merge: json overrides missing/None values, but doesn't wipe checkpoint essentials
+                            for k, v in cfg_json.items():
+                                if k in info:
+                                    if info[k] is None or info[k] == "" or info[k] is False:
+                                        info[k] = v
+                                else:
+                                    # allow extra fields in future
+                                    info[k] = v
+                    except Exception:
+                        pass
+
+            info["ok"] = True
+            return info
         except Exception as e:
             return {"ok": False, "error": str(e)}
 

@@ -6,10 +6,10 @@
   <title>Style Transfer CycleGAN</title>
   <link rel="stylesheet" href="./styles.css" />
 
-  <!-- dataset preview styles (local, to avoid touching styles.css) -->
   <style>
+    /* dataset preview */
     .dataset-preview-wrap{
-      max-height: 520px; /* ограничиваем рост карточки превью */
+      max-height: 520px;
       overflow: auto;
       padding-right: 4px;
     }
@@ -28,7 +28,6 @@
       grid-template-rows: repeat(3, 1fr);
       gap: 10px;
     }
-    /* square thumbnails */
     .dataset-col img{
       width: 100%;
       aspect-ratio: 1 / 1;
@@ -38,6 +37,97 @@
       border: 1px solid rgba(0,0,0,.08);
       background: rgba(0,0,0,.03);
       display:block;
+    }
+
+    /* Resume info styling */
+    .resume-info{
+      display: grid;
+      gap: 10px;
+    }
+    .resume-section{
+      padding: 9px 10px;
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius: 14px;
+      background: rgba(0,0,0,.02);
+    }
+    .resume-section-title{
+      font-weight: 700;
+      font-size: 13px;
+      margin: 0 0 7px 0;
+      color: rgba(0,0,0,.78);
+      letter-spacing: .2px;
+    }
+    .kv{
+      display: grid;
+      gap: 6px;
+    }
+    .kv-row{
+      display: grid;
+      grid-template-columns: 128px 1fr;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      line-height: 1.25;
+    }
+    .kv-key{
+      color: rgba(0,0,0,.55);
+    }
+    .kv-val{
+      color: rgba(0,0,0,.82);
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .badges{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .badge{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(0,0,0,.10);
+      background: rgba(0,0,0,.02);
+      color: rgba(0,0,0,.78);
+      white-space: nowrap;
+    }
+    .badge.on{
+      border-color: rgba(22,163,74,.35);
+      background: rgba(22,163,74,.08);
+      color: rgba(15,118,52,.95);
+    }
+    .badge.off{
+      border-color: rgba(148,163,184,.45);
+      background: rgba(148,163,184,.12);
+      color: rgba(51,65,85,.90);
+    }
+
+    /* two columns inside "Параметры обучения" */
+    .resume-two-col{
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* left / right */
+      gap: 12px;
+      align-items: start;
+    }
+
+    /* NEW: dedicated row for Resume tab (fix wide-card wrap) */
+    .resume-row{
+      display: grid;
+      grid-template-columns: 2fr 1fr; /* LEFT = params (2/3), RIGHT = resume (1/3) */
+      gap: 14px;
+      align-items: start;
+      grid-column: 1 / -1;
+    }
+    /* keep responsiveness: stack on narrow windows */
+    @media (max-width: 1100px){
+      .resume-row{
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -148,7 +238,6 @@
               <label><input id="train-dropout" type="checkbox" /> Use dropout</label>
             </div>
 
-            <!-- Dropout settings (hide when dropout unchecked) -->
             <div id="train-dropout-settings">
               <div class="row">
                 <label>Dropout p</label>
@@ -207,7 +296,6 @@
               <label><input id="train-replay" type="checkbox" /> Replay buffer</label>
             </div>
 
-            <!-- Replay settings (hide when replay unchecked) -->
             <div id="train-replay-settings">
               <div class="row">
                 <label>Replay buffer size</label>
@@ -219,7 +307,6 @@
               <label><input id="train-early" type="checkbox" /> Early stopping</label>
             </div>
 
-            <!-- Early stopping settings (hide when early stopping unchecked) -->
             <div id="train-early-settings">
               <div class="row2">
                 <div class="row">
@@ -246,7 +333,6 @@
             <div class="small muted" id="train-run-dir"></div>
           </div>
 
-          <!-- PREVIEW (center column) -->
           <div class="card" id="card-dataset-preview">
             <h2>Превью датасетов</h2>
 
@@ -273,7 +359,6 @@
             </div>
           </div>
 
-          <!-- SAVING (right column) -->
           <div class="card">
             <h2>Сохранение</h2>
 
@@ -333,31 +418,33 @@
 
       <!-- RESUME -->
       <section class="panel" id="tab-resume">
+        <!-- IMPORTANT: custom layout row instead of relying on .grid + .wide -->
         <div class="grid">
-          <div class="card">
-            <h2>Продолжение обучения</h2>
+          <div class="resume-row">
+            <!-- LEFT: Params (2/3) -->
+            <div class="card">
+              <h2>Параметры обучения</h2>
+              <div class="resume-two-col" id="resume-card-params"></div>
+            </div>
 
-            <div class="row">
-              <label>Checkpoint (.pth) из <code>project/checkpoints/</code></label>
-              <div class="inputgroup">
-                <input id="resume-ckpt" placeholder="/path/to/project/checkpoints/epoch_0005.pth" />
-                <button class="btn icon" id="btn-pick-resume-ckpt" title="Выбрать чекпоинт">📄</button>
+            <!-- RIGHT: Resume (1/3) -->
+            <div class="card">
+              <h2>Продолжение обучения</h2>
+
+              <div class="row">
+                <label>Checkpoint (.pth)</label>
+                <div class="inputgroup">
+                  <input id="resume-ckpt" placeholder="/path/to/project/checkpoints/epoch_0005.pth" />
+                  <button class="btn icon" id="btn-pick-resume-ckpt" title="Выбрать чекпоинт">📄</button>
+                </div>
               </div>
-            </div>
 
-            <div class="row">
-              <button class="btn" id="btn-resume-info">Показать информацию</button>
-              <div class="small muted" id="resume-info"></div>
-            </div>
+              <div class="resume-info" id="resume-inline-project"></div>
 
-            <div class="actions">
-              <button class="btn primary" id="btn-resume-start">Resume training</button>
-              <button class="btn danger" id="btn-resume-stop">Stop</button>
-            </div>
-
-            <div class="small muted" id="resume-run-dir"></div>
-            <div class="small muted">
-              Настройки из чекпоинта менять нельзя: используются исходные датасеты и параметры.
+              <div class="actions">
+                <button class="btn primary" id="btn-resume-start">Resume training</button>
+                <button class="btn danger" id="btn-resume-stop">Stop</button>
+              </div>
             </div>
           </div>
 
