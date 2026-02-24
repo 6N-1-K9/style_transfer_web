@@ -118,9 +118,9 @@
     /* NEW: dedicated row for Resume tab (fix wide-card wrap) */
     .resume-row{
       display: grid;
-      grid-template-columns: 2fr 1fr; /* LEFT = params (2/3), RIGHT = resume (1/3) */
+      grid-template-columns: 1fr 2fr; /* LEFT = params (2/3), RIGHT = resume (1/3) */
       gap: 14px;
-      align-items: start;
+      align-items: stretch;
       grid-column: 1 / -1;
     }
     /* keep responsiveness: stack on narrow windows */
@@ -421,18 +421,12 @@
         <!-- IMPORTANT: custom layout row instead of relying on .grid + .wide -->
         <div class="grid">
           <div class="resume-row">
-            <!-- LEFT: Params (2/3) -->
-            <div class="card">
-              <h2>Параметры обучения</h2>
-              <div class="resume-two-col" id="resume-card-params"></div>
-            </div>
-
             <!-- RIGHT: Resume (1/3) -->
             <div class="card">
               <h2>Продолжение обучения</h2>
 
               <div class="row">
-                <label>Checkpoint (.pth)</label>
+                <!-- <label>Checkpoint (.pth)</label> -->
                 <div class="inputgroup">
                   <input id="resume-ckpt" placeholder="/path/to/project/checkpoints/epoch_0005.pth" />
                   <button class="btn icon" id="btn-pick-resume-ckpt" title="Выбрать чекпоинт">📄</button>
@@ -445,6 +439,12 @@
                 <button class="btn primary" id="btn-resume-start">Resume training</button>
                 <button class="btn danger" id="btn-resume-stop">Stop</button>
               </div>
+            </div>
+
+            <!-- LEFT: Params (2/3) -->
+            <div class="card">
+              <h2>Параметры обучения</h2>
+              <div class="resume-two-col" id="resume-card-params"></div>
             </div>
           </div>
 
