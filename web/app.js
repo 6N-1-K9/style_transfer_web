@@ -5,6 +5,12 @@ function setTab(name){
   document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
   document.querySelector(`.tab[data-tab="${name}"]`).classList.add("active");
   $(`tab-${name}`).classList.add("active");
+
+  if(name === "about"){
+    setTimeout(() => {
+      try { refreshHelpObserver(); } catch(_) {}
+    }, 50);
+  }
 }
 
 document.querySelectorAll(".tab").forEach(btn => {
@@ -98,7 +104,7 @@ function svgPlaceholderSimple(){
 }
 
 function svgPlaceholderNotFound(text){
-  const t = escapeHtml(text || "Датасет не найден");
+  const t = escapeHtml(text || "Dataset not found");
   const svg =
 `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">
   <defs>
@@ -111,7 +117,7 @@ function svgPlaceholderNotFound(text){
   <rect x="18" y="18" width="564" height="564" rx="26" ry="26" fill="rgba(0,0,0,0.02)" stroke="rgba(0,0,0,0.10)"/>
   <g transform="translate(0,0)">
     <text x="300" y="290" text-anchor="middle" font-size="30" font-family="ui-sans-serif,system-ui" fill="rgba(0,0,0,0.62)">${t}</text>
-    <text x="300" y="335" text-anchor="middle" font-size="18" font-family="ui-sans-serif,system-ui" fill="rgba(0,0,0,0.45)">папка не существует или перемещена</text>
+    <text x="300" y="335" text-anchor="middle" font-size="18" font-family="ui-sans-serif,system-ui" fill="rgba(0,0,0,0.45)">folder missing or moved</text>
   </g>
 </svg>`;
   return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
@@ -175,8 +181,7 @@ function schedulePreviewRefreshSide(side){
 
 /* ---------- INFER: training dataset preview ---------- */
 function setInferTrainPlaceholders(which, kind){
-  // kind: "simple" | "not_found"
-  const ph = (kind === "not_found") ? svgPlaceholderNotFound("Датасет не найден") : svgPlaceholderSimple();
+  const ph = (kind === "not_found") ? svgPlaceholderNotFound("Dataset not found") : svgPlaceholderSimple();
 
   const setA = () => {
     for(let i=1;i<=4;i++){
@@ -205,7 +210,7 @@ async function refreshInferTrainingPreview(){
   const modelPath = ($("infer-model").value || "").trim();
   if(!modelPath){
     setInferTrainPlaceholders("ALL", "simple");
-    setInferTrainNote("Выбери модель — появятся 4 случайные картинки из датасетов, на которых она обучалась.");
+    setInferTrainNote("Choose a model to preview training datasets (A → B).");
     return;
   }
 
@@ -213,11 +218,10 @@ async function refreshInferTrainingPreview(){
     const res = await window.pywebview.api.get_infer_training_datasets_preview(modelPath, 4);
     if(!res || !res.ok){
       setInferTrainPlaceholders("ALL", "simple");
-      setInferTrainNote("Не удалось получить датасеты из модели.");
+      setInferTrainNote("Failed to read training dataset info from model.");
       return;
     }
 
-    // A
     if(res.a_status === "ok"){
       const ph = svgPlaceholderSimple();
       const arr = res.a_images || [];
@@ -232,7 +236,6 @@ async function refreshInferTrainingPreview(){
       setInferTrainPlaceholders("A", "simple");
     }
 
-    // B
     if(res.b_status === "ok"){
       const ph = svgPlaceholderSimple();
       const arr = res.b_images || [];
@@ -247,7 +250,6 @@ async function refreshInferTrainingPreview(){
       setInferTrainPlaceholders("B", "simple");
     }
 
-    // note
     const aPath = res.domain_a_dir || "";
     const bPath = res.domain_b_dir || "";
     if(aPath || bPath){
@@ -260,7 +262,7 @@ async function refreshInferTrainingPreview(){
 
   }catch(e){
     setInferTrainPlaceholders("ALL", "simple");
-    setInferTrainNote("Ошибка при получении датасетов из модели.");
+    setInferTrainNote("Error while loading training dataset preview.");
   }
 }
 
@@ -282,16 +284,42 @@ function setResumeParamsHtml(html){
 
 function resetResumeCards(){
   setResumeInlineHtml(
-    section("—", `<div class="kv">${kvRow("Статус", `<span class="muted">Выбери чекпоинт</span>`)}</div>`)
+    section("—", `<div class="kv">${kvRow("Status", `<span class="muted">Choose a checkpoint</span>`)}</div>`)
   );
   setResumeParamsHtml(`
     <div class="resume-info">
-      ${section("—", `<div class="kv">${kvRow("Статус", `<span class="muted">Выбери чекпоинт</span>`)}</div>`)}
+      ${section("—", `<div class="kv">${kvRow("Status", `<span class="muted">Choose a checkpoint</span>`)}</div>`)}
     </div>
     <div class="resume-info">
-      ${section("—", `<div class="kv">${kvRow("Статус", `<span class="muted">Выбери чекпоинт</span>`)}</div>`)}
+      ${section("—", `<div class="kv">${kvRow("Status", `<span class="muted">Choose a checkpoint</span>`)}</div>`)}
     </div>
   `);
+}
+
+async function refreshResumeDetails(){
+  const path = ($("resume-ckpt").value || "").trim();
+  if(!path){
+    resetResumeCards();
+    return;
+  }
+
+  try{
+    const res = await window.pywebview.api.get_resume_details(path);
+    if(!res || !res.ok){
+      resetResumeCards();
+      return;
+    }
+    setResumeInlineHtml(renderInlineProject(res));
+    setResumeParamsHtml(renderParamsTwoColumns(res));
+  }catch(e){
+    resetResumeCards();
+  }
+}
+
+let resumeDebounce = null;
+function scheduleResumeRefresh(){
+  if(resumeDebounce) clearTimeout(resumeDebounce);
+  resumeDebounce = setTimeout(refreshResumeDetails, 200);
 }
 
 function renderInlineProject(res){
@@ -313,8 +341,8 @@ function renderInlineProject(res){
 
   return `
     <div class="resume-info">
-      ${section("Сводка", summaryBadges)}
-      ${section("Пути", pathsKv)}
+      ${section("Summary", summaryBadges)}
+      ${section("Paths", pathsKv)}
     </div>
   `;
 }
@@ -374,75 +402,49 @@ function renderParamsTwoColumns(res){
 
   const leftLoss =
     `<div class="kv">
-      ${kvRow("λ cycle", badge(String(lc)))}
-      ${kvRow("λ identity", badge(String(li)))}
+      ${kvRow("lambda_cycle", badge(String(lc)))}
+      ${kvRow("lambda_identity", badge(String(li)))}
     </div>`;
 
   const leftStab =
     `<div class="kv">
-      ${kvRow("Replay buffer", onOffBadge(replayOn))}
-      ${replayOn ? kvRow("Replay size", badge(String(replaySize))) : ""}
-      ${kvRow("Gradient clip", badge(String(gclip)))}
+      ${kvRow("use_replay_buffer", onOffBadge(replayOn))}
+      ${replayOn ? kvRow("replay_buffer_size", badge(String(replaySize))) : ""}
+      ${kvRow("gradient_clip_norm", badge(String(gclip)))}
     </div>`;
 
   const leftReg =
     `<div class="kv">
-      ${kvRow("Dropout", onOffBadge(dropoutOn))}
-      ${dropoutOn ? kvRow("Dropout p", badge(String(dropoutP))) : ""}
+      ${kvRow("use_dropout", onOffBadge(dropoutOn))}
+      ${dropoutOn ? kvRow("dropout_p", badge(String(dropoutP))) : ""}
     </div>`;
 
   const leftEarly =
     `<div class="kv">
-      ${kvRow("Enabled", onOffBadge(earlyOn))}
-      ${earlyOn ? kvRow("Patience", badge(String(patience))) : ""}
-      ${earlyOn ? kvRow("Min delta", badge(String(mindelta))) : ""}
-      ${earlyOn ? kvRow("Metric", badge(String(metric))) : ""}
+      ${kvRow("early_stopping", onOffBadge(earlyOn))}
+      ${earlyOn ? kvRow("early_stopping_patience", badge(String(patience))) : ""}
+      ${earlyOn ? kvRow("early_stopping_min_delta", badge(String(mindelta))) : ""}
+      ${earlyOn ? kvRow("early_stopping_metric", badge(String(metric))) : ""}
     </div>`;
 
   const leftCol = `
     <div class="resume-info">
       ${section("Loss weights", leftLoss)}
-      ${section("Стабилизация", leftStab)}
-      ${section("Регуляризация", leftReg)}
+      ${section("Stabilization", leftStab)}
+      ${section("Regularization", leftReg)}
       ${section("Early stopping", leftEarly)}
     </div>
   `;
 
   const rightCol = `
     <div class="resume-info">
-      ${section("Сводка", rightSummary)}
-      ${section("Основное", rightMain)}
-      ${section("Оптимизация", rightOpt)}
+      ${section("Summary", rightSummary)}
+      ${section("Core", rightMain)}
+      ${section("Optimization", rightOpt)}
     </div>
   `;
 
   return leftCol + rightCol;
-}
-
-async function refreshResumeDetails(){
-  const path = ($("resume-ckpt").value || "").trim();
-  if(!path){
-    resetResumeCards();
-    return;
-  }
-
-  try{
-    const res = await window.pywebview.api.get_resume_details(path);
-    if(!res || !res.ok){
-      resetResumeCards();
-      return;
-    }
-    setResumeInlineHtml(renderInlineProject(res));
-    setResumeParamsHtml(renderParamsTwoColumns(res));
-  }catch(e){
-    resetResumeCards();
-  }
-}
-
-let resumeDebounce = null;
-function scheduleResumeRefresh(){
-  if(resumeDebounce) clearTimeout(resumeDebounce);
-  resumeDebounce = setTimeout(refreshResumeDetails, 200);
 }
 
 /* ---------- CUDA ---------- */
@@ -500,86 +502,459 @@ function getStatsToSave(){
   return out;
 }
 
-async function loadDefaults(){
-  const train = await window.pywebview.api.get_default_train_config();
-  if(train.ok){
-    const c = train.config;
+/* ===================== ABOUT HELP (RU/EN) ===================== */
+const HELP = {
+  ru: {
+    title: "Справка по приложению",
+    subtitle: "CycleGAN Style Transfer “Комбайн”: обучение, продолжение обучения и инференс. Навигация слева. Язык справки переключается кнопками RU/EN.",
+    navTitle: "Разделы",
+    sections: [
+      {
+        id: "purpose",
+        title: "Назначение",
+        html: `
+          <p>Приложение предназначено для обучения и применения <b>CycleGAN</b> для переноса стиля.</p>
+          <div class="help-grid-2">
+            <div class="help-section">
+              <h3>Domain A</h3>
+              <p>Контент/предметы — то, что будет стилизоваться (A → B).</p>
+            </div>
+            <div class="help-section">
+              <h3>Domain B</h3>
+              <p>Стиль — визуальная “цель”, в которую переводится Domain A.</p>
+            </div>
+          </div>
+          <div class="help-callout warn">Важно: датасеты не копируются в папку проекта — приложение хранит только пути.</div>
+        `
+      },
+      {
+        id: "project_structure",
+        title: "Папка проекта и файлы",
+        html: `
+          <p>При обучении создаётся папка проекта: <code>&lt;Project base folder&gt;/&lt;Project name&gt;/</code>.</p>
+          <ul>
+            <li><code>checkpoints/</code> — checkpoints (для Resume).</li>
+            <li><code>models/</code> — models (веса генераторов для inference).</li>
+            <li><code>stats/</code> — statistics (CSV/TXT).</li>
+            <li><code>samples/</code> — вспомогательные примеры (если используются).</li>
+            <li><code>train_config.json</code> — конфигурация обучения проекта.</li>
+          </ul>
+          <div class="help-callout">
+            <b>Checkpoint</b> — полное состояние обучения (генераторы, дискриминаторы, оптимизаторы).<br/>
+            <b>Model</b> — веса генератора (обычно <code>G_A2B_...</code>) для inference.
+          </div>
+        `
+      },
+      {
+        id: "tab_train",
+        title: "Вкладка «Обучение»",
+        html: `
+          <p>Здесь создаётся проект и запускается обучение CycleGAN.</p>
 
-    $("train-imgsize").value = c.image_size;
-    $("train-batch").value = c.batch_size;
-    $("train-epochs").value = c.epochs;
-    $("train-lr").value = c.lr;
+          <div class="help-section">
+            <h3>Проект</h3>
+            <ul>
+              <li><b>Project base folder</b> — где создать папку проекта.</li>
+              <li><b>Project name</b> — имя папки проекта.</li>
+              <li><b>Сохранять статистику</b> — какие файлы писать в <code>stats/</code> (<code>losses.csv</code>, <code>lr.csv</code>, <code>logs.txt</code>).</li>
+            </ul>
+          </div>
 
-    $("train-resblocks").value = c.residual_blocks;
-    $("train-dropout").checked = c.use_dropout;
-    $("train-dropoutp").value = c.dropout_p;
-    $("train-clip").value = c.gradient_clip_norm;
+          <div class="help-section">
+            <h3>Датасеты</h3>
+            <ul>
+              <li><b>Domain A</b> — папка с контентом.</li>
+              <li><b>Domain B</b> — папка со стилем.</li>
+              <li><b>Image size</b> — к какому квадратному размеру приводятся изображения.</li>
+              <li><b>Batch size</b> — сколько изображений обрабатывается за один шаг.</li>
+              <li><b>Max images A / Max images B</b> — ограничить число изображений (для быстрых тестов).</li>
+              <li><b>Recursive search</b> — искать изображения в подпапках.</li>
+            </ul>
+          </div>
 
-    $("train-lcycle").value = c.lambda_cycle;
-    $("train-lid").value = c.lambda_identity;
+          <div class="help-section">
+            <h3>Модель</h3>
+            <ul>
+              <li><b>Residual blocks</b> — “ёмкость” генератора (больше = потенциально качественнее, но тяжелее).</li>
+              <li><b>Device</b> — <code>cpu</code>/<code>cuda</code> (если CUDA недоступна, приложение предупредит).</li>
+              <li><b>Use dropout</b> — регуляризация генератора.</li>
+              <li><b>Dropout p</b> — вероятность dropout (параметр виден только когда включено).</li>
+              <li><b>Gradient clip (0 = off)</b> — ограничение нормы градиента для стабильности.</li>
+            </ul>
+          </div>
 
-    $("train-decaystart").value = c.lr_decay_start;
-    $("train-decayend").value = c.lr_decay_end;
-    $("train-finalratio").value = c.final_lr_ratio;
+          <div class="help-section">
+            <h3>Обучение</h3>
+            <ul>
+              <li><b>Epochs</b> — число эпох.</li>
+              <li><b>LR</b> — learning rate.</li>
+              <li><b>lambda_cycle</b> — вес cycle-loss (A→B→A и B→A→B).</li>
+              <li><b>lambda_identity</b> — вес identity-loss (уменьшает лишние изменения).</li>
+              <li><b>LR decay start / LR decay end</b> + <b>Final LR ratio</b> — расписание снижения LR.</li>
+              <li><b>Replay buffer</b> + <b>Replay buffer size</b> — стабилизация обучения дискриминаторов (size скрывается, если выключено).</li>
+              <li><b>Early stopping</b> — ранняя остановка (параметры скрываются, если выключено).</li>
+              <li><b>Patience</b>, <b>Min delta</b>, <b>Metric</b> — настройки ранней остановки.</li>
+            </ul>
+          </div>
 
-    $("train-replay").checked = c.use_replay_buffer;
-    $("train-replaysize").value = c.replay_buffer_size;
+          <div class="help-section">
+            <h3>Сохранение</h3>
+            <ul>
+              <li><b>Save checkpoints</b> — сохранять checkpoints в <code>checkpoints/</code>.</li>
+              <li><b>Checkpoint interval (epochs)</b> — интервал сохранения.</li>
+              <li><b>Keep only latest checkpoint</b> — хранить только последний checkpoint.</li>
+              <li><b>Save models by interval</b> — сохранять models в <code>models/</code>.</li>
+              <li><b>Model save interval (epochs)</b> — интервал сохранения моделей.</li>
+              <li><b>Keep last models</b> / <b>Keep last count</b> — хранить только последние K моделей.</li>
+              <li><b>Save B2A models</b> — сохранять генератор B→A (можно выключить для экономии места).</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        id: "tab_resume",
+        title: "Вкладка «Продолжить» (Resume)",
+        html: `
+          <p>Продолжение обучения из checkpoint: <code>project/checkpoints/epoch_XXXX.pth</code>.</p>
+          <ul>
+            <li>После выбора checkpoint справа отображаются параметры обучения и пути датасетов.</li>
+            <li><b>Resume training</b> — продолжить обучение.</li>
+            <li><b>Stop</b> — остановить процесс.</li>
+          </ul>
+          <div class="help-callout warn">
+            В Resume используется сохранённая конфигурация проекта/чекпоинта, чтобы избежать несовместимости.
+          </div>
+        `
+      },
+      {
+        id: "tab_infer",
+        title: "Вкладка «Инференс»",
+        html: `
+          <p>Применение обученного генератора к файлу или папке изображений.</p>
+          <div class="help-section">
+            <h3>Модель</h3>
+            <ul>
+              <li><b>Generator .pth</b> — файл генератора (обычно <code>G_A2B_...</code>).</li>
+              <li><b>Image size</b> — размер, к которому приводится вход перед прогоном.</li>
+              <li><b>Device</b> — <code>cpu</code>/<code>cuda</code>.</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <h3>Вход / Выход</h3>
+            <ul>
+              <li><b>Input (file or folder)</b> — файл или папка.</li>
+              <li><b>Output folder</b> — обязательная папка сохранения результата.</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <h3>Training datasets preview</h3>
+            <p>Справа отображается 2×2 превью датасетов Domain A и Domain B, на которых обучалась модель. Если папка датасета отсутствует — показывается “Dataset not found”.</p>
+          </div>
+        `
+      },
+      {
+        id: "faq",
+        title: "Частые вопросы",
+        html: `
+          <div class="help-section">
+            <h3>CUDA недоступна</h3>
+            <p>Если PyTorch установлен без CUDA или нет совместимого GPU/драйверов — используйте <code>cpu</code>. Приложение предупредит при выборе <code>cuda</code>.</p>
+          </div>
+          <div class="help-section">
+            <h3>“Dataset not found” в inference</h3>
+            <p>Model хранит пути датасетов из проекта. Если папки перемещены/удалены — показывается заглушка. На inference это не влияет.</p>
+          </div>
+        `
+      }
+    ]
+  },
 
-    $("train-early").checked = c.early_stopping;
-    $("train-patience").value = c.early_stopping_patience;
-    $("train-mindelta").value = c.early_stopping_min_delta;
-    $("train-metric").value = c.early_stopping_metric;
+  en: {
+    title: "Application Help",
+    subtitle: "CycleGAN Style Transfer “Combine”: training, resume training, and inference. Use the left navigation; switch language with RU/EN buttons.",
+    navTitle: "Sections",
+    sections: [
+      {
+        id: "purpose",
+        title: "Purpose",
+        html: `
+          <p>This application trains and runs a <b>CycleGAN</b> model for style transfer.</p>
+          <div class="help-grid-2">
+            <div class="help-section">
+              <h3>Domain A</h3>
+              <p>Content/objects — what you want to stylize (A → B).</p>
+            </div>
+            <div class="help-section">
+              <h3>Domain B</h3>
+              <p>Style domain — the target visual style.</p>
+            </div>
+          </div>
+          <div class="help-callout warn">Important: datasets are not copied into the project folder — only paths are stored.</div>
+        `
+      },
+      {
+        id: "project_structure",
+        title: "Project folder & files",
+        html: `
+          <p>Training creates a project directory: <code>&lt;base&gt;/&lt;project_name&gt;/</code>.</p>
+          <ul>
+            <li><code>checkpoints/</code> — training checkpoints (for Resume).</li>
+            <li><code>models/</code> — generator weights for inference.</li>
+            <li><code>stats/</code> — logs/metrics (CSV/TXT).</li>
+            <li><code>samples/</code> — auxiliary samples (if used).</li>
+            <li><code>train_config.json</code> — project training configuration.</li>
+          </ul>
+          <div class="help-callout">
+            <b>Checkpoint</b> = full training state (generators, discriminators, optimizers).<br/>
+            <b>Model</b> = generator weights (usually <code>G_A2B_...</code>) for inference.
+          </div>
+        `
+      },
+      {
+        id: "tab_train",
+        title: "Training tab",
+        html: `
+          <p>Create a project and start CycleGAN training.</p>
 
-    $("train-recursive").checked = c.recursive_search;
-    $("train-device").value = c.device;
+          <div class="help-section">
+            <h3>Project</h3>
+            <ul>
+              <li><b>Project base folder</b> — where to create the project directory.</li>
+              <li><b>Project name</b> — project folder name.</li>
+              <li><b>Save statistics</b> — which files to write into <code>stats/</code> (losses.csv, lr.csv, logs.txt).</li>
+            </ul>
+          </div>
 
-    $("train-proj-base").value = c.project_base_dir || "";
-    $("train-proj-name").value = c.project_name || "";
+          <div class="help-section">
+            <h3>Datasets</h3>
+            <ul>
+              <li><b>Domain A</b> — content folder.</li>
+              <li><b>Domain B</b> — style folder.</li>
+              <li><b>Image size</b> — input size (images are resized to a square).</li>
+              <li><b>Batch size</b> — number of images per step.</li>
+              <li><b>Max images A/B</b> — limit images for quick experiments.</li>
+              <li><b>Recursive search</b> — scan subfolders.</li>
+            </ul>
+          </div>
 
-    $("train-save-b2a").checked = (c.save_b2a_models !== false);
+          <div class="help-section">
+            <h3>Model</h3>
+            <ul>
+              <li><b>Residual blocks</b> — generator capacity (more = potentially better, but heavier).</li>
+              <li><b>Device</b> — cpu/cuda (the app warns if CUDA is not available).</li>
+              <li><b>Use dropout</b> — generator regularization.</li>
+              <li><b>Dropout p</b> — dropout probability (visible only when enabled).</li>
+              <li><b>Gradient clip</b> — gradient norm clipping for stability (0 = off).</li>
+            </ul>
+          </div>
 
-    const sts = c.stats_to_save || [];
-    $("stat-losses").checked = sts.includes("losses_csv");
-    $("stat-lr").checked = sts.includes("lr_csv");
-    $("stat-logs").checked = sts.includes("logs_txt");
+          <div class="help-section">
+            <h3>Training</h3>
+            <ul>
+              <li><b>Epochs</b> — total epochs.</li>
+              <li><b>LR</b> — learning rate.</li>
+              <li><b>lambda_cycle</b> — cycle-consistency loss weight.</li>
+              <li><b>lambda_identity</b> — identity loss weight.</li>
+              <li><b>LR decay start/end</b> and <b>Final LR ratio</b> — LR schedule.</li>
+              <li><b>Replay buffer</b> and <b>size</b> — stabilizes discriminator training.</li>
+              <li><b>Early stopping</b> — stop training when a metric stops improving.</li>
+              <li><b>Patience</b>, <b>Min delta</b>, <b>Metric</b> — early stop controls.</li>
+            </ul>
+          </div>
 
-    $("train-save-ckpt").checked = (c.save_checkpoints !== false);
-    $("train-ckpt-interval").value = c.checkpoint_interval_epochs ?? 1;
-    $("train-ckpt-latest").checked = (c.keep_only_latest_checkpoint === true);
+          <div class="help-section">
+            <h3>Saving</h3>
+            <ul>
+              <li><b>Save checkpoints</b> — store checkpoints in <code>checkpoints/</code>.</li>
+              <li><b>Checkpoint interval</b> — interval (epochs).</li>
+              <li><b>Keep only latest checkpoint</b> — keep only the newest checkpoint.</li>
+              <li><b>Save models by interval</b> — store generator weights in <code>models/</code>.</li>
+              <li><b>Model save interval</b> — interval (epochs).</li>
+              <li><b>Keep last models</b> / <b>count</b> — keep only last K saved models.</li>
+              <li><b>Save B2A models</b> — save B→A generator (can disable to save disk space).</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        id: "tab_resume",
+        title: "Resume tab",
+        html: `
+          <p>Continue training from a checkpoint: <code>project/checkpoints/epoch_XXXX.pth</code>.</p>
+          <ul>
+            <li>After selecting a checkpoint, the UI shows training parameters and dataset paths.</li>
+            <li><b>Resume training</b> — continue training.</li>
+            <li><b>Stop</b> — stop the process.</li>
+          </ul>
+          <div class="help-callout warn">
+            Resume uses the saved configuration from the project/checkpoint to avoid incompatibilities.
+          </div>
+        `
+      },
+      {
+        id: "tab_infer",
+        title: "Inference tab",
+        html: `
+          <p>Apply a trained generator to a file or a folder of images.</p>
+          <div class="help-section">
+            <h3>Model</h3>
+            <ul>
+              <li><b>Generator .pth</b> — generator weights (usually <code>G_A2B_...</code>).</li>
+              <li><b>Image size</b> — input resize size for inference.</li>
+              <li><b>Device</b> — cpu/cuda.</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <h3>Input / Output</h3>
+            <ul>
+              <li><b>Input</b> — image file or a folder.</li>
+              <li><b>Output folder</b> — required output directory.</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <h3>Training datasets preview</h3>
+            <p>The UI shows a 2×2 preview for domains A and B used during training. If folders are missing — “Dataset not found” placeholders are shown.</p>
+          </div>
+        `
+      },
+      {
+        id: "faq",
+        title: "FAQ",
+        html: `
+          <div class="help-section">
+            <h3>CUDA is not available</h3>
+            <p>If PyTorch is installed without CUDA support or GPU/drivers are missing, use <code>cpu</code>. The app warns when selecting <code>cuda</code>.</p>
+          </div>
+          <div class="help-section">
+            <h3>“Dataset not found” in inference</h3>
+            <p>The model stores dataset paths from the training project. If folders were moved/removed, placeholders appear. Inference still works.</p>
+          </div>
+        `
+      }
+    ]
+  }
+};
 
-    $("train-model-interval-enabled").checked = (c.models_save_interval_enabled !== false);
-    $("train-model-interval").value = c.models_save_interval_epochs ?? 1;
+let HELP_LANG = "ru";
+let helpObserver = null;
+let helpFlashTimer = null;
 
-    $("train-model-keep-last-enabled").checked = (c.models_keep_last_enabled === true);
-    $("train-model-keep-last-count").value = c.models_keep_last_count ?? 5;
+function setHelpLang(lang){
+  HELP_LANG = (lang === "en") ? "en" : "ru";
+
+  const bRu = $("btn-help-ru");
+  const bEn = $("btn-help-en");
+  if(bRu) bRu.classList.toggle("active", HELP_LANG === "ru");
+  if(bEn) bEn.classList.toggle("active", HELP_LANG === "en");
+
+  renderHelp();
+}
+
+function flashHelpSection(secEl){
+  if(!secEl) return;
+
+  // remove old flash
+  try{
+    document.querySelectorAll(".help-section.flash").forEach(x => x.classList.remove("flash"));
+  }catch(_){}
+
+  secEl.classList.add("flash");
+  if(helpFlashTimer) clearTimeout(helpFlashTimer);
+  helpFlashTimer = setTimeout(() => {
+    try{ secEl.classList.remove("flash"); }catch(_){}
+  }, 900);
+}
+
+function renderHelp(){
+  const data = HELP[HELP_LANG];
+  if(!data) return;
+
+  const titleEl = $("help-title");
+  const subtitleEl = $("help-subtitle");
+  const navEl = $("help-nav");
+  const contentEl = $("help-content");
+
+  if(titleEl) titleEl.textContent = data.title || "Help";
+  if(subtitleEl) subtitleEl.textContent = data.subtitle || "";
+
+  if(navEl){
+    navEl.innerHTML = `
+      <div class="nav-title">${escapeHtml(data.navTitle || "Sections")}</div>
+      ${(data.sections || []).map(s => `
+        <a href="#${escapeHtml(s.id)}" data-help-link="${escapeHtml(s.id)}">${escapeHtml(s.title)}</a>
+      `).join("")}
+    `;
+
+    navEl.querySelectorAll("a[data-help-link]").forEach(a => {
+      a.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        const id = a.getAttribute("data-help-link");
+        const target = document.getElementById(`help-sec-${id}`);
+        if(target){
+          target.scrollIntoView({ behavior:"smooth", block:"start" });
+          // flash after scrolling starts
+          setTimeout(() => flashHelpSection(target), 220);
+        }
+      });
+    });
   }
 
-  const infer = await window.pywebview.api.get_default_infer_config();
-  if(infer.ok){
-    const c = infer.config;
-    $("infer-imgsize").value = c.image_size;
-    $("infer-device").value = c.device;
-    $("infer-output").value = c.output_dir || "";
+  if(contentEl){
+    contentEl.innerHTML = (data.sections || []).map(s => `
+      <div class="help-section" id="help-sec-${escapeHtml(s.id)}" data-help-sec="${escapeHtml(s.id)}">
+        <h3>${escapeHtml(s.title)}</h3>
+        ${s.html || ""}
+      </div>
+    `).join("");
   }
 
-  updateDropoutVisibility();
-  updateEarlyStoppingVisibility();
-  updateReplayVisibility();
+  refreshHelpObserver();
+}
 
-  setDatasetPlaceholders(null);
+function setActiveHelpNav(id){
+  const navEl = $("help-nav");
+  if(!navEl) return;
+  navEl.querySelectorAll("a[data-help-link]").forEach(a => {
+    a.classList.toggle("active", a.getAttribute("data-help-link") === id);
+  });
+}
 
-  if(($("train-a").value || "").trim()){
-    schedulePreviewRefreshSide("A");
-  }
-  if(($("train-b").value || "").trim()){
-    schedulePreviewRefreshSide("B");
-  }
+function refreshHelpObserver(){
+  try{
+    if(helpObserver){
+      helpObserver.disconnect();
+      helpObserver = null;
+    }
+  }catch(_){}
 
-  resetResumeCards();
+  const contentEl = $("help-content");
+  if(!contentEl) return;
 
-  // infer training datasets preview
-  setInferTrainPlaceholders("ALL", "simple");
-  setInferTrainNote("Выбери модель — появятся 4 случайные картинки из датасетов, на которых она обучалась.");
+  const sections = contentEl.querySelectorAll("[data-help-sec]");
+  if(!sections || sections.length === 0) return;
+
+  helpObserver = new IntersectionObserver((entries) => {
+    let best = null;
+    for(const e of entries){
+      if(!e.isIntersecting) continue;
+      if(!best || e.intersectionRatio > best.intersectionRatio){
+        best = e;
+      }
+    }
+    if(best){
+      const id = best.target.getAttribute("data-help-sec");
+      if(id) setActiveHelpNav(id);
+    }
+  }, {
+    root: null,
+    threshold: [0.15, 0.25, 0.35, 0.45, 0.6],
+    rootMargin: "0px 0px -65% 0px"
+  });
+
+  sections.forEach(s => helpObserver.observe(s));
+
+  const first = sections[0].getAttribute("data-help-sec");
+  if(first) setActiveHelpNav(first);
 }
 
 /* ---------- Training / inference ---------- */
@@ -816,7 +1191,7 @@ async function runInference(){
         <img src="${p.in_img}" />
         <img src="${p.out_img}" />
       </div>
-     `;
+    `;
     gal.appendChild(div);
   });
 }
@@ -841,8 +1216,94 @@ async function startResume(){
   pollTimer = setInterval(pollTraining, 700);
 }
 
+async function loadDefaults(){
+  const train = await window.pywebview.api.get_default_train_config();
+  if(train.ok){
+    const c = train.config;
+
+    $("train-imgsize").value = c.image_size;
+    $("train-batch").value = c.batch_size;
+    $("train-epochs").value = c.epochs;
+    $("train-lr").value = c.lr;
+
+    $("train-resblocks").value = c.residual_blocks;
+    $("train-dropout").checked = c.use_dropout;
+    $("train-dropoutp").value = c.dropout_p;
+    $("train-clip").value = c.gradient_clip_norm;
+
+    $("train-lcycle").value = c.lambda_cycle;
+    $("train-lid").value = c.lambda_identity;
+
+    $("train-decaystart").value = c.lr_decay_start;
+    $("train-decayend").value = c.lr_decay_end;
+    $("train-finalratio").value = c.final_lr_ratio;
+
+    $("train-replay").checked = c.use_replay_buffer;
+    $("train-replaysize").value = c.replay_buffer_size;
+
+    $("train-early").checked = c.early_stopping;
+    $("train-patience").value = c.early_stopping_patience;
+    $("train-mindelta").value = c.early_stopping_min_delta;
+    $("train-metric").value = c.early_stopping_metric;
+
+    $("train-recursive").checked = c.recursive_search;
+    $("train-device").value = c.device;
+
+    $("train-proj-base").value = c.project_base_dir || "";
+    $("train-proj-name").value = c.project_name || "";
+
+    $("train-save-b2a").checked = (c.save_b2a_models !== false);
+
+    const sts = c.stats_to_save || [];
+    $("stat-losses").checked = sts.includes("losses_csv");
+    $("stat-lr").checked = sts.includes("lr_csv");
+    $("stat-logs").checked = sts.includes("logs_txt");
+
+    $("train-save-ckpt").checked = (c.save_checkpoints !== false);
+    $("train-ckpt-interval").value = c.checkpoint_interval_epochs ?? 1;
+    $("train-ckpt-latest").checked = (c.keep_only_latest_checkpoint === true);
+
+    $("train-model-interval-enabled").checked = (c.models_save_interval_enabled !== false);
+    $("train-model-interval").value = c.models_save_interval_epochs ?? 1;
+
+    $("train-model-keep-last-enabled").checked = (c.models_keep_last_enabled === true);
+    $("train-model-keep-last-count").value = c.models_keep_last_count ?? 5;
+  }
+
+  const infer = await window.pywebview.api.get_default_infer_config();
+  if(infer.ok){
+    const c = infer.config;
+    $("infer-imgsize").value = c.image_size;
+    $("infer-device").value = c.device;
+    $("infer-output").value = c.output_dir || "";
+  }
+
+  updateDropoutVisibility();
+  updateEarlyStoppingVisibility();
+  updateReplayVisibility();
+
+  setDatasetPlaceholders(null);
+
+  if(($("train-a").value || "").trim()){
+    schedulePreviewRefreshSide("A");
+  }
+  if(($("train-b").value || "").trim()){
+    schedulePreviewRefreshSide("B");
+  }
+
+  resetResumeCards();
+
+  setInferTrainPlaceholders("ALL", "simple");
+  setInferTrainNote("Choose a model to preview training datasets (A → B).");
+
+  setHelpLang("ru");
+}
+
 window.addEventListener("pywebviewready", async () => {
   await loadDefaults();
+
+  $("btn-help-ru")?.addEventListener("click", () => setHelpLang("ru"));
+  $("btn-help-en")?.addEventListener("click", () => setHelpLang("en"));
 
   $("btn-train-start").addEventListener("click", startTraining);
   $("btn-train-stop").addEventListener("click", stopTraining);
@@ -894,7 +1355,6 @@ window.addEventListener("pywebviewready", async () => {
     await pickFolderInto($("infer-output"), "Select output folder");
   });
 
-  // Resume UI
   $("btn-pick-resume-ckpt").addEventListener("click", async () => {
     await pickFileInto($("resume-ckpt"), "Select checkpoint (.pth)", "pth");
     scheduleResumeRefresh();
@@ -905,7 +1365,6 @@ window.addEventListener("pywebviewready", async () => {
   $("resume-ckpt").addEventListener("change", scheduleResumeRefresh);
   $("resume-ckpt").addEventListener("blur", scheduleResumeRefresh);
 
-  // Device change checks
   $("train-device").addEventListener("change", async () => {
     await enforceCudaSelection($("train-device"));
   });
@@ -913,7 +1372,6 @@ window.addEventListener("pywebviewready", async () => {
     await enforceCudaSelection($("infer-device"));
   });
 
-  // UI visibility toggles
   $("train-dropout").addEventListener("change", updateDropoutVisibility);
   $("train-early").addEventListener("change", updateEarlyStoppingVisibility);
   $("train-replay").addEventListener("change", updateReplayVisibility);
@@ -925,6 +1383,5 @@ window.addEventListener("pywebviewready", async () => {
   if(pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(pollTraining, 700);
 
-  // Initial infer datasets preview state
   scheduleInferTrainingPreview();
 });
