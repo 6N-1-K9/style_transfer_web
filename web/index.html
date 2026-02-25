@@ -27,6 +27,7 @@
       display: grid;
       grid-template-rows: repeat(3, 1fr);
       gap: 10px;
+      align-items: stretch;
     }
     .dataset-col img{
       width: 100%;
@@ -107,7 +108,6 @@
       color: rgba(51,65,85,.90);
     }
 
-    /* two columns inside "Параметры обучения" */
     .resume-two-col{
       display: grid;
       grid-template-columns: 1fr 1fr; /* left / right */
@@ -386,35 +386,35 @@
   <div class="app">
     <main class="content">
       <nav class="tabs">
-        <button class="tab active" data-tab="train">Обучение</button>
-        <button class="tab" data-tab="resume">Продолжить</button>
-        <button class="tab" data-tab="infer">Инференс</button>
-        <button class="tab" data-tab="about">О программе</button>
+        <button class="tab active" data-tab="train">Training</button>
+        <button class="tab" data-tab="resume">Continue</button>
+        <button class="tab" data-tab="infer">Inference</button>
+        <button class="tab" data-tab="about">About program</button>
       </nav>
 
       <!-- TRAIN -->
       <section class="panel active" id="tab-train">
         <div class="grid">
           <div class="card">
-            <h2>Проект</h2>
+            <h2>Project</h2>
 
             <div class="row">
-              <label>Project base folder (куда создать папку проекта)</label>
+              <label>Project base folder</label>
               <div class="inputgroup">
                 <input id="train-proj-base" placeholder="/path/to/projects_root" />
-                <button class="btn icon" id="btn-pick-train-proj-base" title="Выбрать папку">📁</button>
+                <button class="btn icon" id="btn-pick-train-proj-base" title="Select floader">📁</button>
               </div>
             </div>
 
             <div class="row">
-              <label>Project name (имя папки)</label>
+              <label>Project name</label>
               <input id="train-proj-name" placeholder="my_experiment_01" />
             </div>
 
             <div class="row">
               <label>Save statistic</label>
               <div class="checks">
-                <label class="check"><input type="checkbox" id="stat-losses" checked /> losses.csv (по эпохам)</label>
+                <label class="check"><input type="checkbox" id="stat-losses" checked /> losses.csv</label>
                 <label class="check"><input type="checkbox" id="stat-lr" checked /> lr.csv</label>
                 <label class="check"><input type="checkbox" id="stat-logs" /> logs.txt</label>
               </div>
@@ -422,21 +422,21 @@
           </div>
 
           <div class="card">
-            <h2>Датасеты</h2>
+            <h2>Datasets</h2>
 
             <div class="row">
-              <label>Domain A (предметы)</label>
+              <label>Domain A (items)</label>
               <div class="inputgroup">
                 <input id="train-a" placeholder="/path/to/domainA" />
-                <button class="btn icon" id="btn-pick-train-a" title="Выбрать папку">📁</button>
+                <button class="btn icon" id="btn-pick-train-a" title="Select floader">📁</button>
               </div>
             </div>
 
             <div class="row">
-              <label>Domain B (стили)</label>
+              <label>Domain B (styles)</label>
               <div class="inputgroup">
                 <input id="train-b" placeholder="/path/to/domainB" />
-                <button class="btn icon" id="btn-pick-train-b" title="Выбрать папку">📁</button>
+                <button class="btn icon" id="btn-pick-train-b" title="Select floader">📁</button>
               </div>
             </div>
 
@@ -463,12 +463,12 @@
             </div>
 
             <div class="row">
-              <label><input id="train-recursive" type="checkbox" /> Рекурсивно искать изображения</label>
+              <label><input id="train-recursive" type="checkbox" /> Recursive search</label>
             </div>
           </div>
 
           <div class="card">
-            <h2>Модель</h2>
+            <h2>Model</h2>
 
             <div class="row2">
               <div class="row">
@@ -502,7 +502,7 @@
           </div>
 
           <div class="card">
-            <h2>Обучение</h2>
+            <h2>Training</h2>
 
             <div class="row2">
               <div class="row">
@@ -584,7 +584,7 @@
           </div>
 
           <div class="card" id="card-dataset-preview">
-            <h2>Превью датасетов</h2>
+            <h2>Dataset preview</h2>
 
             <div class="dataset-preview-wrap">
               <div class="dataset-preview">
@@ -610,7 +610,7 @@
           </div>
 
           <div class="card">
-            <h2>Сохранение</h2>
+            <h2>Save</h2>
 
             <div class="row">
               <label><input id="train-save-ckpt" type="checkbox" checked /> Save checkpoints</label>
@@ -646,7 +646,7 @@
             </div>
 
             <div class="row">
-              <label><input id="train-save-b2a" type="checkbox" checked /> Save B2A models (экономия места: выключи)</label>
+              <label><input id="train-save-b2a" type="checkbox" checked /> Save B2A models</label>
             </div>
 
             <div class="actions">
@@ -656,7 +656,7 @@
           </div>
 
           <div class="card wide">
-            <h2>Логи</h2>
+            <h2>Logs</h2>
             <pre class="console" id="train-console"></pre>
             <div class="progress">
               <div class="bar" id="train-progress"></div>
@@ -671,13 +671,13 @@
         <div class="grid">
           <div class="resume-row">
             <div class="card">
-              <h2>Продолжение обучения</h2>
+              <h2>Training continue</h2>
 
               <div class="row">
                 <label>Checkpoint (.pth)</label>
                 <div class="inputgroup">
                   <input id="resume-ckpt" placeholder="/path/to/project/checkpoints/epoch_0005.pth" />
-                  <button class="btn icon" id="btn-pick-resume-ckpt" title="Выбрать чекпоинт">📄</button>
+                  <button class="btn icon" id="btn-pick-resume-ckpt" title="Select checkpoint">📄</button>
                 </div>
               </div>
 
@@ -690,13 +690,13 @@
             </div>
 
             <div class="card">
-              <h2>Параметры обучения</h2>
+              <h2>Training parametrs</h2>
               <div class="resume-two-col" id="resume-card-params"></div>
             </div>
           </div>
 
           <div class="card wide">
-            <h2>Логи (общие)</h2>
+            <h2>Logs</h2>
             <pre class="console" id="resume-console"></pre>
           </div>
         </div>
@@ -706,12 +706,12 @@
       <section class="panel" id="tab-infer">
         <div class="grid">
           <div class="card">
-            <h2>Модель</h2>
+            <h2>Model</h2>
             <div class="row">
               <label>Generator .pth</label>
               <div class="inputgroup">
                 <input id="infer-model" placeholder="/path/to/G_A2B_epoch_....pth" />
-                <button class="btn icon" id="btn-pick-infer-model" title="Выбрать файл модели">📄</button>
+                <button class="btn icon" id="btn-pick-infer-model" title="Select model file">📄</button>
               </div>
             </div>
 
@@ -735,22 +735,22 @@
           </div>
 
           <div class="card">
-            <h2>Вход / Выход</h2>
+            <h2>Input/Output</h2>
 
             <div class="row">
               <label>Input (file or folder)</label>
               <div class="inputgroup">
                 <input id="infer-input" placeholder="/path/to/image_or_folder" />
-                <button class="btn icon" id="btn-pick-infer-input-file" title="Выбрать файл">📄</button>
-                <button class="btn icon" id="btn-pick-infer-input-folder" title="Выбрать папку">📁</button>
+                <button class="btn icon" id="btn-pick-infer-input-file" title="Select file">📄</button>
+                <button class="btn icon" id="btn-pick-infer-input-folder" title="Select floader">📁</button>
               </div>
             </div>
 
             <div class="row">
-              <label>Output folder (обязательно)</label>
+              <label>Output folder</label>
               <div class="inputgroup">
                 <input id="infer-output" placeholder="/path/to/output_folder" />
-                <button class="btn icon" id="btn-pick-infer-output" title="Выбрать папку вывода">📁</button>
+                <button class="btn icon" id="btn-pick-infer-output" title="Select output floader">📁</button>
               </div>
             </div>
 
@@ -762,7 +762,7 @@
           </div>
 
           <div class="card" id="infer-train-card">
-            <h2>Датасеты обучения</h2>
+            <h2>Training datasets</h2>
 
             <div class="infer-train-preview">
               <div class="infer-domain">
@@ -796,7 +796,7 @@
           </div>
 
           <div class="card wide">
-            <h2>Превью (первые результаты)</h2>
+            <h2>Preview</h2>
             <div class="gallery" id="infer-gallery"></div>
           </div>
         </div>
