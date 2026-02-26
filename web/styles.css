@@ -53,10 +53,7 @@ body{
 .pill.secondary{ color: var(--muted); }
 
 .content{ padding:18px 24px 26px; flex:1; }
-
-/* ✅ only change: make tabs sticky */
-.tabs{ display:flex; gap:10px; margin-bottom:14px; position: sticky; top: 0; z-index: 1000; }
-
+.tabs{ display:flex; gap:10px; margin-bottom:14px; }
 .tab{
   padding:10px 14px;
   border-radius:999px;
@@ -198,7 +195,7 @@ input:focus, select:focus{
 
 .gallery{
   display:grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));  
   gap:12px;
 }
 .item{
@@ -236,4 +233,15 @@ code{
   border-radius: 8px;
   background:#f1f5f9;
   border: 1px solid var(--border);
+}
+/* FORCE: inference preview grid 4 columns */
+#infer-gallery.gallery{
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important; 
+}
+
+#infer-gallery.gallery .item{
+  width: auto !important;
+  min-width: 0 !important;
 }
