@@ -35,7 +35,7 @@
 ```bash
 git clone https://github.com/<username>/<repository_name>.git
 cd <repository_name>
-````
+
 
 ### 1.3 Создание виртуального окружения
 
