@@ -2,7 +2,7 @@ import sys
 
 
 def main() -> None:
-    print("\nStyle Transfer (CycleGAN) - Launcher")
+    print("\nStyle Transfer Launcher")
     print("1) Web UI (PyWebview)")
     print("2) Console (CLI)")
     print("0) Exit\n")

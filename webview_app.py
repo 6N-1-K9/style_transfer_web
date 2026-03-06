@@ -455,7 +455,7 @@ class Api:
 def run_web() -> None:
     api = Api()
     window = webview.create_window(
-        title="Style Transfer CycleGAN - Web UI",
+        title="Style Transfer Web",
         url=str(Path(WEB_DIR / "index.html")),
         js_api=api,
         width=1200,
