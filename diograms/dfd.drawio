@@ -1,0 +1,118 @@
+<mxfile host="65bd71144e">
+    <diagram id="dfd-level-1" name="DFD Level 1">
+        <mxGraphModel dx="1626" dy="798" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="2" value="Пользователь" style="whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="70" y="260" width="170" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="1. Подготовка&#xa;данных" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="75" width="220" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="2. Обучение&#xa;модели CycleGAN" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="260" width="220" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="3. Продолжение&#xa;обучения" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="290" y="390" width="220" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="4. Выполнение&#xa;инференса" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="1220" y="450" width="220" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="D1. Датасеты&#xa;изображений" style="shape=partialRectangle;whiteSpace=wrap;html=1;strokeWidth=1.5;left=0;right=1;top=0;bottom=0;" parent="1" vertex="1">
+                    <mxGeometry x="870" y="85" width="240" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="D2. Контрольные&#xa;точки обучения" style="shape=partialRectangle;whiteSpace=wrap;html=1;strokeWidth=1.5;left=0;right=1;top=0;bottom=0;" parent="1" vertex="1">
+                    <mxGeometry x="730" y="350" width="240" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="22" value="D3. Обученные модели&#xa;и результаты" style="shape=partialRectangle;whiteSpace=wrap;html=1;strokeWidth=1.5;left=0;right=1;top=0;bottom=0;" parent="1" vertex="1">
+                    <mxGeometry x="1180" y="240" width="260" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" value="пути к датасетам;&#xa;параметры обучения" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="2" target="10" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="31" value="путь к checkpoint" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="2" target="12" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="32" value="модель;&#xa;входные изображения;&#xa;директория сохранения" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="2" target="13" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="220" y="520"/>
+                            <mxPoint x="970" y="520"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="33" value="запрос изображений" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="10" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="860" y="100" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="34" value="изображения датасета" style="endArrow=block;html=1;strokeWidth=1.5;dashed=1;" parent="1" target="10" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="850" y="160" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="35" value="подготовленные данные" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="10" target="11" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="36" value="checkpoint;&#xa;статистика обучения" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="11" target="21" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="37" value="обученная модель" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="11" target="22" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="620" y="310"/>
+                            <mxPoint x="1120" y="310"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="38" value="запрос checkpoint" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="12" target="21" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="39" value="состояние модели" style="endArrow=block;html=1;strokeWidth=1.5;dashed=1;" parent="1" source="21" target="12" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="40" value="обновлённый checkpoint;&#xa;статистика" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="12" target="21" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="400" y="560"/>
+                            <mxPoint x="850" y="560"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="41" value="обновлённая модель" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="12" target="22" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="620" y="500"/>
+                            <mxPoint x="1120" y="500"/>
+                            <mxPoint x="1120" y="350"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="42" value="запрос модели" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="13" target="22" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="43" value="обученная модель" style="endArrow=block;html=1;strokeWidth=1.5;dashed=1;exitX=0.85;exitY=1.01;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="22" target="13" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="44" value="результаты&#xa;инференса" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="13" target="22" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1250" y="420"/>
+                            <mxPoint x="1260" y="370"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="45" value="результат переноса&#xa;стиля" style="endArrow=block;html=1;strokeWidth=1.5;dashed=1;" parent="1" source="13" target="2" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="960" y="620"/>
+                            <mxPoint x="150" y="620"/>
+                            <mxPoint x="150" y="340"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
