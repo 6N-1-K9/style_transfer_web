@@ -1,0 +1,114 @@
+<mxfile host="65bd71144e">
+    <diagram id="cyclegan-training-flow" name="CycleGAN training flowchart">
+        <mxGraphModel dx="2237" dy="897" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1400" pageHeight="2200" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="2" value="Начало обучения" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="500" y="20" width="220" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="Загрузка подготовленных&#xa;датасетов" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="120" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="Инициализация цикла&#xa;обучения по эпохам" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="230" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="Загрузка очередного&#xa;батча изображений A и B" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="340" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="Генерация изображений&#xa;из домена A в B и из B в A" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="450" width="320" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="Вычисление функций потерь&#xa;генераторов и дискриминаторов" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="570" width="320" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" value="Обратное распространение&#xa;ошибки" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="490" y="690" width="240" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="Обновление параметров&#xa;генераторов и дискриминаторов" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="800" width="320" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="Все батчи эпохи&#xa;обработаны?" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="485" y="930" width="250" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="Сохранение статистики&#xa;и checkpoint" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="490" y="1090" width="240" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="Все эпохи&#xa;завершены?" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="505" y="1210" width="210" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="Переход к следующей&#xa;эпохе" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="490" y="1360" width="240" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="Сохранение итоговой&#xa;модели" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="500" y="1480" width="220" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="15" value="Завершение обучения" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="500" y="1590" width="220" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="2" target="3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="3" target="4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="22" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="4" target="5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="23" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="5" target="6" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="24" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="6" target="7" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="25" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="7" target="8" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="8" target="9" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="27" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="9" target="10" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="28" value="нет" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="10" target="5" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="820" y="985"/>
+                            <mxPoint x="820" y="375"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="29" value="да" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="10" target="11" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="11" target="12" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="31" value="нет" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="12" target="13" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="32" value="да" style="endArrow=block;html=1;strokeWidth=1.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="12" target="14" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="760" y="1260"/>
+                            <mxPoint x="760" y="1515"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="33" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="13" target="5" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="360" y="1395"/>
+                            <mxPoint x="360" y="375"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="34" style="endArrow=block;html=1;strokeWidth=1.5;" parent="1" source="14" target="15" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

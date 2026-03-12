@@ -1,0 +1,82 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="inference-flow" name="Style Transfer Inference">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1800">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Start -->
+        <mxCell id="2" value="Начало инференса" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="420" y="20" width="260" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Load model -->
+        <mxCell id="3" value="Загрузка обученной&#xa;модели" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="400" y="120" width="300" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Load image -->
+        <mxCell id="4" value="Загрузка входного&#xa;изображения" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="400" y="230" width="300" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Resize -->
+        <mxCell id="5" value="Изменение размера&#xa;изображения до размера&#xa;обучения модели" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="380" y="340" width="340" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Tensor conversion -->
+        <mxCell id="6" value="Преобразование&#xa;изображения в тензор&#xa;и нормализация" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="390" y="460" width="320" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Generator -->
+        <mxCell id="7" value="Передача изображения&#xa;в генератор CycleGAN" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="390" y="580" width="320" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Output -->
+        <mxCell id="8" value="Получение стилизованного&#xa;изображения" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="410" y="700" width="280" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Save -->
+        <mxCell id="9" value="Сохранение результата&#xa;в каталог results" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="410" y="820" width="280" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- End -->
+        <mxCell id="10" value="Завершение инференса" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="420" y="940" width="260" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="20" style="endArrow=block;strokeWidth=1.5;" edge="1" parent="1" source="2" target="3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="21" style="endArrow=block;strokeWidth=1.5;" edge="1" parent="1" source="3" target="4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="22" style="endArrow=block;strokeWidth=1.5;" edge="1" parent="1" source="4" target="5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="23" style="endArrow=block;strokeWidth=1.5;" edge="1" parent="1" source="5" target="6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="24" style="endArrow=block;strokeWidth=1.5;" edge="1" parent="1" source="6" target="7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="25" style="endArrow=block;strokeWidth=1.5;" edge="1" parent="1" source="7" target="8">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="26" style="endArrow=block;strokeWidth=1.5;" edge="1" parent="1" source="8" target="9">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="27" style="endArrow=block;strokeWidth=1.5;" edge="1" parent="1" source="9" target="10">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
