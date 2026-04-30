@@ -1,0 +1,32 @@
+/* dataset preview (train) */
+.dataset-preview-wrap{
+  max-height: 520px;
+  overflow: auto;
+  padding-right: 4px;
+}
+.dataset-preview{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.dataset-col .col-title{
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.dataset-col .thumbs{
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+.dataset-col img{
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(0,0,0,.03);
+  display:block;
+}

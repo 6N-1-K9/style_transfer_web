@@ -1,0 +1,31 @@
+.btn{
+  padding:10px 12px;
+  border-radius: 14px;
+  border:1px solid var(--border);
+  background:#ffffff;
+  cursor:pointer;
+  transition: .15s ease;
+  font-weight:600;
+  user-select:none;
+}
+.btn.primary{
+  border-color: rgba(37,99,235,.5);
+  background: rgba(37,99,235,.1);
+  color: var(--accent);
+}
+.btn.danger{
+  border-color: rgba(220,38,38,.5);
+  background: rgba(220,38,38,.1);
+  color: var(--bad);
+}
+.btn:hover{ transform: translateY(-1px); }
+
+.btn.icon{
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  display:grid;
+  place-items:center;
+  border-radius: 12px;
+  font-weight: 700;
+}

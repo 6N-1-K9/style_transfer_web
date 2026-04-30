@@ -1,0 +1,19 @@
+.tabs{ display:flex; gap:10px; margin-bottom:14px; }
+.tab{
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:#ffffff;
+  color:var(--muted);
+  cursor:pointer;
+  transition: .15s ease;
+}
+.tab.active{
+  color: var(--accent);
+  border-color: rgba(37,99,235,.4);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+.tab:hover{ transform: translateY(-1px); }
+
+.panel{ display:none; }
+.panel.active{ display:block; }

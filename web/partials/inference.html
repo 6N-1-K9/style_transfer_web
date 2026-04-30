@@ -1,0 +1,99 @@
+<!-- INFER -->
+      <section class="panel" id="tab-infer">
+        <div class="grid">
+          <div class="card">
+            <h2>Model</h2>
+            <div class="row">
+              <label>Generator .pth</label>
+              <div class="inputgroup">
+                <input id="infer-model" placeholder="/path/to/G_A2B_epoch_....pth" />
+                <button class="btn icon" id="btn-pick-infer-model" title="Select model file">📄</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="small muted" id="infer-model-info"></div>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Image size</label>
+                <input id="infer-imgsize" type="number" min="64" max="1024" step="32" />
+              </div>
+              <div class="row">
+                <label>Device</label>
+                <select id="infer-device">
+                  <option value="cpu">cpu</option>
+                  <option value="cuda">cuda</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Input/Output</h2>
+
+            <div class="row">
+              <label>Input (file or folder)</label>
+              <div class="inputgroup">
+                <input id="infer-input" placeholder="/path/to/image_or_folder" />
+                <button class="btn icon" id="btn-pick-infer-input-file" title="Select file">📄</button>
+                <button class="btn icon" id="btn-pick-infer-input-folder" title="Select floader">📁</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Output folder</label>
+              <div class="inputgroup">
+                <input id="infer-output" placeholder="/path/to/output_folder" />
+                <button class="btn icon" id="btn-pick-infer-output" title="Select output floader">📁</button>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="btn-infer-run">Run inference</button>
+            </div>
+
+            <div class="small muted" id="infer-result"></div>
+          </div>
+
+          <div class="card" id="infer-train-card">
+            <h2>Training datasets</h2>
+
+            <div class="infer-train-preview">
+              <div class="infer-domain">
+                <div class="domain-title">Domain A</div>
+                <div class="infer-square">
+                  <div class="grid2x2">
+                    <img id="infer-a-1" alt="A1" />
+                    <img id="infer-a-2" alt="A2" />
+                    <img id="infer-a-3" alt="A3" />
+                    <img id="infer-a-4" alt="A4" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="infer-arrow">→</div>
+
+              <div class="infer-domain">
+                <div class="domain-title">Domain B</div>
+                <div class="infer-square">
+                  <div class="grid2x2">
+                    <img id="infer-b-1" alt="B1" />
+                    <img id="infer-b-2" alt="B2" />
+                    <img id="infer-b-3" alt="B3" />
+                    <img id="infer-b-4" alt="B4" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="infer-note" id="infer-train-note"></div>
+          </div>
+
+          <div class="card wide">
+            <h2>Preview</h2>
+            <div class="gallery" id="infer-gallery"></div>
+          </div>
+        </div>
+      </section>

@@ -1,0 +1,27 @@
+.console{
+  height: 260px;
+  overflow:auto;
+  background:#f9fafb;
+  border:1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color:#111827;
+}
+
+.progress{
+  height: 10px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:#f1f5f9;
+  margin-top: 10px;
+  overflow:hidden;
+}
+.bar{
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #2563eb, #38bdf8);
+}

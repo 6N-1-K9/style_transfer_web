@@ -1,0 +1,273 @@
+<!-- TRAIN -->
+      <section class="panel active" id="tab-train">
+        <div class="grid">
+          <div class="card">
+            <h2>Project</h2>
+
+            <div class="row">
+              <label>Project base folder</label>
+              <div class="inputgroup">
+                <input id="train-proj-base" placeholder="/path/to/projects_root" />
+                <button class="btn icon" id="btn-pick-train-proj-base" title="Select floader">📁</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Project name</label>
+              <input id="train-proj-name" placeholder="my_experiment_01" />
+            </div>
+
+            <div class="row">
+              <label>Save statistic</label>
+              <div class="checks">
+                <label class="check"><input type="checkbox" id="stat-losses" checked /> losses.csv</label>
+                <label class="check"><input type="checkbox" id="stat-lr" checked /> lr.csv</label>
+                <label class="check"><input type="checkbox" id="stat-logs" /> logs.txt</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Datasets</h2>
+
+            <div class="row">
+              <label>Domain A (items)</label>
+              <div class="inputgroup">
+                <input id="train-a" placeholder="/path/to/domainA" />
+                <button class="btn icon" id="btn-pick-train-a" title="Select floader">📁</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Domain B (styles)</label>
+              <div class="inputgroup">
+                <input id="train-b" placeholder="/path/to/domainB" />
+                <button class="btn icon" id="btn-pick-train-b" title="Select floader">📁</button>
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Image size</label>
+                <input id="train-imgsize" type="number" min="64" max="1024" step="32" />
+              </div>
+              <div class="row">
+                <label>Batch size</label>
+                <input id="train-batch" type="number" min="1" max="16" step="1" />
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Max images A (optional)</label>
+                <input id="train-maxa" type="number" min="1" step="1" placeholder="empty = all" />
+              </div>
+              <div class="row">
+                <label>Max images B (optional)</label>
+                <input id="train-maxb" type="number" min="1" step="1" placeholder="empty = all" />
+              </div>
+            </div>
+
+            <div class="row">
+              <label><input id="train-recursive" type="checkbox" /> Recursive search</label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Model</h2>
+
+            <div class="row2">
+              <div class="row">
+                <label>Residual blocks</label>
+                <input id="train-resblocks" type="number" min="1" max="18" step="1" />
+              </div>
+              <div class="row">
+                <label>Device</label>
+                <select id="train-device">
+                  <option value="cpu">cpu</option>
+                  <option value="cuda">cuda</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <label><input id="train-dropout" type="checkbox" /> Use dropout</label>
+            </div>
+
+            <div id="train-dropout-settings">
+              <div class="row">
+                <label>Dropout p</label>
+                <input id="train-dropoutp" type="number" min="0" max="0.9" step="0.05" />
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Gradient clip (0 = off)</label>
+              <input id="train-clip" type="number" min="0" step="0.1" />
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Training</h2>
+
+            <div class="row2">
+              <div class="row">
+                <label>Epochs</label>
+                <input id="train-epochs" type="number" min="1" step="1" />
+              </div>
+              <div class="row">
+                <label>LR</label>
+                <input id="train-lr" type="number" min="0" step="0.00005" />
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>λ cycle</label>
+                <input id="train-lcycle" type="number" min="0" step="0.5" />
+              </div>
+              <div class="row">
+                <label>λ identity</label>
+                <input id="train-lid" type="number" min="0" step="0.5" />
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>LR decay start</label>
+                <input id="train-decaystart" type="number" min="0" step="1" />
+              </div>
+              <div class="row">
+                <label>LR decay end</label>
+                <input id="train-decayend" type="number" min="1" step="1" />
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Final LR ratio</label>
+              <input id="train-finalratio" type="number" min="0" max="1" step="0.01" />
+            </div>
+
+            <div class="row">
+              <label><input id="train-replay" type="checkbox" /> Replay buffer</label>
+            </div>
+
+            <div id="train-replay-settings">
+              <div class="row">
+                <label>Replay buffer size</label>
+                <input id="train-replaysize" type="number" min="1" step="1" />
+              </div>
+            </div>
+
+            <div class="row">
+              <label><input id="train-early" type="checkbox" /> Early stopping</label>
+            </div>
+
+            <div id="train-early-settings">
+              <div class="row2">
+                <div class="row">
+                  <label>Patience</label>
+                  <input id="train-patience" type="number" min="1" step="1" />
+                </div>
+                <div class="row">
+                  <label>Min delta</label>
+                  <input id="train-mindelta" type="number" min="0" step="0.0001" />
+                </div>
+              </div>
+
+              <div class="row">
+                <label>Metric</label>
+                <select id="train-metric">
+                  <option value="G_total">G_total</option>
+                  <option value="cycle">cycle</option>
+                  <option value="identity">identity</option>
+                  <option value="adv">adv</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="small muted" id="train-run-dir"></div>
+          </div>
+
+          <div class="card" id="card-dataset-preview">
+            <h2>Dataset preview</h2>
+
+            <div class="dataset-preview-wrap">
+              <div class="dataset-preview">
+                <div class="dataset-col">
+                  <div class="col-title">Domain A</div>
+                  <div class="thumbs">
+                    <img id="prev-a-1" alt="A preview 1" />
+                    <img id="prev-a-2" alt="A preview 2" />
+                    <img id="prev-a-3" alt="A preview 3" />
+                  </div>
+                </div>
+
+                <div class="dataset-col">
+                  <div class="col-title">Domain B</div>
+                  <div class="thumbs">
+                    <img id="prev-b-1" alt="B preview 1" />
+                    <img id="prev-b-2" alt="B preview 2" />
+                    <img id="prev-b-3" alt="B preview 3" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Save</h2>
+
+            <div class="row">
+              <label><input id="train-save-ckpt" type="checkbox" checked /> Save checkpoints</label>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Checkpoint interval (epochs)</label>
+                <input id="train-ckpt-interval" type="number" min="1" step="1" />
+              </div>
+              <div class="row">
+                <label><input id="train-ckpt-latest" type="checkbox" /> Keep only latest checkpoint</label>
+              </div>
+            </div>
+
+            <div class="row">
+              <label><input id="train-model-interval-enabled" type="checkbox" checked /> Save models by interval</label>
+            </div>
+
+            <div class="row2">
+              <div class="row">
+                <label>Model save interval (epochs)</label>
+                <input id="train-model-interval" type="number" min="1" step="1" />
+              </div>
+              <div class="row">
+                <label><input id="train-model-keep-last-enabled" type="checkbox" /> Keep last models</label>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>Keep last count</label>
+              <input id="train-model-keep-last-count" type="number" min="1" step="1" />
+            </div>
+
+            <div class="row">
+              <label><input id="train-save-b2a" type="checkbox" checked /> Save B2A models</label>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="btn-train-start">Start training</button>
+              <button class="btn danger" id="btn-train-stop">Stop</button>
+            </div>
+          </div>
+
+          <div class="card wide">
+            <h2>Logs</h2>
+            <pre class="console" id="train-console"></pre>
+            <div class="progress">
+              <div class="bar" id="train-progress"></div>
+            </div>
+            <div class="small muted" id="train-stats"></div>
+          </div>
+        </div>
+      </section>

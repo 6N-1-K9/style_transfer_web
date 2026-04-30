@@ -1,0 +1,35 @@
+<!-- RESUME -->
+      <section class="panel" id="tab-resume">
+        <div class="grid">
+          <div class="resume-row">
+            <div class="card">
+              <h2>Training continue</h2>
+
+              <div class="row">
+                <label>Checkpoint (.pth)</label>
+                <div class="inputgroup">
+                  <input id="resume-ckpt" placeholder="/path/to/project/checkpoints/epoch_0005.pth" />
+                  <button class="btn icon" id="btn-pick-resume-ckpt" title="Select checkpoint">📄</button>
+                </div>
+              </div>
+
+              <div class="resume-info" id="resume-inline-project"></div>
+
+              <div class="actions">
+                <button class="btn primary" id="btn-resume-start">Resume training</button>
+                <button class="btn danger" id="btn-resume-stop">Stop</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Training parametrs</h2>
+              <div class="resume-two-col" id="resume-card-params"></div>
+            </div>
+          </div>
+
+          <div class="card wide">
+            <h2>Logs</h2>
+            <pre class="console" id="resume-console"></pre>
+          </div>
+        </div>
+      </section>
