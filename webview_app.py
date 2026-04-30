@@ -207,9 +207,99 @@ class Api:
         except Exception as e:
             return {"ok": False, "error": str(e)}
 
-    # NOTE: you likely already have get_model_info/get_resume_details in your repo.
-    # If not — these calls will fail from JS.
-    # (Оставляю как есть: в проекте они уже должны быть.)
+    def get_resume_details(self, checkpoint_path: str) -> Dict[str, Any]:
+        try:
+            ckpt_path = Path(checkpoint_path).expanduser().resolve()
+        except Exception:
+            return {"ok": False, "error": "Invalid checkpoint path"}
+
+        if not ckpt_path.exists():
+            return {"ok": False, "error": "Checkpoint file not found"}
+
+        if not ckpt_path.is_file():
+            return {"ok": False, "error": "Checkpoint path is not a file"}
+
+        try:
+            raw = torch.load(ckpt_path, map_location="cpu")
+        except Exception as e:
+            return {"ok": False, "error": f"Failed to read checkpoint: {e}"}
+
+        if not isinstance(raw, dict):
+            return {"ok": False, "error": "Invalid checkpoint format"}
+
+        cfg = raw.get("config")
+        if not isinstance(cfg, dict):
+            cfg = {}
+
+        meta = raw.get("meta")
+        if not isinstance(meta, dict):
+            meta = {}
+
+        epoch = raw.get("epoch")
+
+        project_dir = ""
+        try:
+            if ckpt_path.parent.name == "checkpoints":
+                project_dir = str(ckpt_path.parent.parent)
+        except Exception:
+            project_dir = ""
+
+        def value(name: str, default: Any = None) -> Any:
+            if name in cfg:
+                return cfg.get(name)
+            if name in meta:
+                return meta.get(name)
+            return default
+
+        return {
+            "ok": True,
+            "checkpoint_path": str(ckpt_path),
+            "project_dir": project_dir,
+            "epoch": epoch,
+
+            "domain_a_dir": value("domain_a_dir", ""),
+            "domain_b_dir": value("domain_b_dir", ""),
+
+            "image_size": value("image_size"),
+            "batch_size": value("batch_size"),
+            "epochs_total": value("epochs"),
+            "residual_blocks": value("residual_blocks"),
+            "use_dropout": value("use_dropout"),
+            "dropout_p": value("dropout_p"),
+
+            "lr": value("lr"),
+            "beta1": value("beta1"),
+            "beta2": value("beta2"),
+            "lr_decay_start": value("lr_decay_start"),
+            "lr_decay_end": value("lr_decay_end"),
+            "final_lr_ratio": value("final_lr_ratio"),
+
+            "lambda_cycle": value("lambda_cycle"),
+            "lambda_identity": value("lambda_identity"),
+
+            "use_replay_buffer": value("use_replay_buffer"),
+            "replay_buffer_size": value("replay_buffer_size"),
+            "gradient_clip_norm": value("gradient_clip_norm"),
+
+            "early_stopping": value("early_stopping"),
+            "early_stopping_patience": value("early_stopping_patience"),
+            "early_stopping_min_delta": value("early_stopping_min_delta"),
+            "early_stopping_metric": value("early_stopping_metric"),
+
+            "device": value("device", "cpu"),
+
+            "save_checkpoints": value("save_checkpoints"),
+            "checkpoint_interval_epochs": value("checkpoint_interval_epochs"),
+            "keep_only_latest_checkpoint": value("keep_only_latest_checkpoint"),
+
+            "models_save_interval_enabled": value("models_save_interval_enabled"),
+            "models_save_interval_epochs": value("models_save_interval_epochs"),
+            "models_keep_last_enabled": value("models_keep_last_enabled"),
+            "models_keep_last_count": value("models_keep_last_count"),
+
+            "stats_to_save": value("stats_to_save", []),
+            "save_b2a_models": value("save_b2a_models"),
+        }
 
     # ---------- NEW: Infer tab training datasets preview ----------
     def get_infer_training_datasets_preview(self, model_path: str, k: int = 4) -> Dict[str, Any]:
