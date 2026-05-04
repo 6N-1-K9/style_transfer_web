@@ -1,0 +1,15 @@
+test_id,name,dataset_A,A_count,dataset_B,B_count,image_size,batch_size,epochs,lr,beta1,beta2,lambda_cycle,lambda_identity,residual_blocks,use_dropout,dropout_p,lr_decay_start,lr_decay_end,final_lr_ratio,early_stopping,early_stopping_patience,early_stopping_min_delta,max_images_a,max_images_b,description
+1,Baseline,Airplanes,600,Abstract,1000,256,1,80,0.0002,0.5,0.999,10,5,9,false,0.0,40,80,0.1,false,0,0,600,1000,Эталонное обучение для сравнения всех экспериментов
+2,Batch Size 2,Airplanes,600,Abstract,1000,256,2,50,0.0002,0.5,0.999,10,5,9,false,0.0,40,80,0.1,false,0,0,600,1000,Влияние размера батча на стабильность и качество
+3,Residual Blocks 6,Airplanes,600,Abstract,1000,256,1,50,0.0002,0.5,0.999,10,5,6,false,0.0,40,80,0.1,false,0,0,600,1000,Влияние уменьшения глубины генератора
+4,Dropout Enabled,Airplanes,600,Abstract,1000,256,1,50,0.0002,0.5,0.999,10,5,9,true,0.3,40,80,0.1,false,0,0,600,1000,Проверка влияния dropout на переобучение
+5,No Identity Loss,Airplanes,600,Abstract,1000,256,1,50,0.0002,0.5,0.999,10,0,9,false,0.0,40,80,0.1,false,0,0,600,1000,Влияние отключения identity loss на цвета
+6,Reduced Cycle Loss,Airplanes,600,Abstract,1000,256,1,50,0.0002,0.5,0.999,5,5,9,false,0.0,40,80,0.1,false,0,0,600,1000,Баланс между стилем и сохранением структуры
+7,Aggressive LR Decay,Airplanes,600,Abstract,1000,256,1,50,0.0002,0.5,0.999,10,5,9,false,0.0,20,60,0.05,false,0,0,600,1000,Влияние агрессивного уменьшения learning rate
+8,No LR Decay,Airplanes,600,Abstract,1000,256,1,50,0.0002,0.5,0.999,10,5,9,false,0.0,999,1000,1.0,false,0,0,600,1000,Проверка необходимости lr decay
+9,Small Dataset,Airplanes,150,Abstract,200,256,1,50,0.0002,0.5,0.999,10,5,9,false,0.0,40,80,0.1,false,0,0,150,200,Влияние малого количества данных
+10,Medium Dataset,Airplanes,300,Abstract,500,256,1,50,0.0002,0.5,0.999,10,5,9,false,0.0,40,80,0.1,false,0,0,300,500,Промежуточный объем данных
+11,Low Resolution,Airplanes,600,Abstract,1000,128,1,50,0.0002,0.5,0.999,10,5,9,false,0.0,40,80,0.1,false,0,0,600,1000,Влияние уменьшения разрешения
+12,Early Stopping,Airplanes,600,Abstract,1000,256,1,80,0.0002,0.5,0.999,10,5,9,false,0.0,40,80,0.1,true,5,0.01,600,1000,Проверка эффективности ранней остановки
+13,Strong Style,Airplanes,600,Abstract,1000,256,1,50,0.0002,0.5,0.999,5,0,9,false,0.0,40,80,0.1,false,0,0,600,1000,Максимальный упор на стиль (минимум ограничений)
+14,Light Model,Airplanes,600,Abstract,1000,128,1,50,0.0002,0.5,0.999,10,5,4,false,0.0,40,80,0.1,false,0,0,600,1000,Облегченная модель для ускорения обучения
