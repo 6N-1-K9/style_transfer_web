@@ -1,0 +1,15 @@
+test_id,name,domain_a_dir,domain_b_dir,image_size,batch_size,epochs,max_images_a,max_images_b,residual_blocks,use_dropout,dropout_p,lr,beta1,beta2,lambda_cycle,lambda_identity,lr_decay_start,lr_decay_end,final_lr_ratio,use_replay_buffer,replay_buffer_size,gradient_clip_norm,early_stopping,early_stopping_patience,early_stopping_min_delta,device,save_b2a_models,models_save_interval_epochs,description
+1,Базовый тест,/airliner,/Paul_Gauguin,256,1,80,300,300,9,false,0.0,0.0002,0.5,0.999,10,5,40,80,0.1,true,50,0,false,5,0,cuda,false,5,Эталонное обучение для сравнения всех последующих экспериментов
+2,Без Replay Buffer,/airliner,/Paul_Gauguin,256,1,50,300,300,9,false,0.0,0.0002,0.5,0.999,10,5,25,50,0.1,false,0,0,false,5,0,cuda,false,5,Проверка влияния replay buffer на стабильность и качество
+3,Меньше residual блоков,/airliner,/Paul_Gauguin,256,1,50,300,300,6,false,0.0,0.0002,0.5,0.999,10,5,25,50,0.1,true,50,0,false,5,0,cuda,false,5,Уменьшение глубины генератора для ускорения обучения
+4,С Dropout,/airliner,/Paul_Gauguin,256,1,50,300,300,9,true,0.3,0.0002,0.5,0.999,10,5,25,50,0.1,true,50,0,false,5,0,cuda,false,5,Проверка влияния dropout на переобучение
+5,Без Identity Loss,/airliner,/Paul_Gauguin,256,1,50,300,300,9,false,0.0,0.0002,0.5,0.999,10,0,25,50,0.1,true,50,0,false,5,0,cuda,false,5,Проверка влияния identity loss на сохранение цвета
+6,Уменьшенный Cycle Loss,/airliner,/Paul_Gauguin,256,1,50,300,300,9,false,0.0,0.0002,0.5,0.999,5,5,25,50,0.1,true,50,0,false,5,0,cuda,false,5,Баланс между стилем и сохранением структуры
+7,Агрессивный LR decay,/airliner,/Paul_Gauguin,256,1,50,300,300,9,false,0.0,0.0002,0.5,0.999,10,5,15,50,0.05,true,50,0,false,5,0,cuda,false,5,Проверка быстрого снижения learning rate
+8,Без LR decay,/airliner,/Paul_Gauguin,256,1,50,300,300,9,false,0.0,0.0002,0.5,0.999,10,5,999,1000,1.0,true,50,0,false,5,0,cuda,false,5,Проверка необходимости уменьшения learning rate
+9,Разрешение 128,/airliner,/Paul_Gauguin,128,1,50,300,300,9,false,0.0,0.0002,0.5,0.999,10,5,25,50,0.1,true,50,0,false,5,0,cuda,false,5,Влияние уменьшения разрешения на качество и скорость
+10,Ранняя остановка,/airliner,/Paul_Gauguin,256,1,80,300,300,9,false,0.0,0.0002,0.5,0.999,10,5,40,80,0.1,true,50,0,true,5,0.01,cuda,false,5,Проверка эффективности early stopping
+11,Сильный стиль,/airliner,/Paul_Gauguin,256,1,50,300,300,9,false,0.0,0.0002,0.5,0.999,5,0,25,50,0.1,true,50,0,false,5,0,cuda,false,5,Максимальная стилизация с минимальным сохранением структуры
+12,Gradient Clipping,/airliner,/Paul_Gauguin,256,1,50,300,300,9,false,0.0,0.0002,0.5,0.999,10,5,25,50,0.1,true,50,1.0,false,5,0,cuda,false,5,Проверка влияния ограничения градиента на стабильность
+13,Мало данных A,/airliner,/Paul_Gauguin,256,1,40,150,300,9,false,0.0,0.0002,0.5,0.999,10,5,20,40,0.1,true,50,0,false,5,0,cuda,false,5,Влияние уменьшения количества изображений объектов на сохранение структуры
+14,Мало данных B,/airliner,/Paul_Gauguin,256,1,40,300,150,9,false,0.0,0.0002,0.5,0.999,10,5,20,40,0.1,true,50,0,false,5,0,cuda,false,5,Влияние уменьшения количества изображений стиля на разнообразие и качество стилизации
